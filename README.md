@@ -15,6 +15,13 @@
 Already initialized with:
 ```bash
 npx shadcn@latest init --preset bp96 --template next
+cd app
+npx shadcn@latest add sidebar-07
+```
+
+Running:
+```bash
+npm run dev --prefix app
 ```
 
 ### Adding components
