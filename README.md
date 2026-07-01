@@ -14,9 +14,8 @@
 
 Already initialized with:
 ```bash
-npx shadcn@latest init --preset bp96 --template next
-cd app
-npx shadcn@latest add sidebar-07
+npx shadcn@latest init --preset bp96 --template next -c app
+npx shadcn@latest add sidebar-07 -c app
 ```
 
 Running:
