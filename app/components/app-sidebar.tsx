@@ -1,5 +1,5 @@
 "use client"
-
+//sidebar
 import * as React from "react"
 
 import { NavMain } from "@/components/nav-main"
@@ -13,7 +13,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
+import { HouseIcon, RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
 
 // This is sample data.
 const data = {
@@ -24,34 +24,26 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "House 1",
       logo: (
-        <RowsIcon
+        <HouseIcon
         />
       ),
-      plan: "Enterprise",
+      plan: "Network",
     },
     {
-      name: "Acme Corp.",
+      name: "House 2",
       logo: (
-        <WaveformIcon
+        <HouseIcon
         />
       ),
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: (
-        <CommandIcon
-        />
-      ),
-      plan: "Free",
+      plan: "Network",
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: "beepBoopSR",
+      url: "/beepBoopSR/about",
       icon: (
         <TerminalIcon
         />
@@ -59,11 +51,25 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Introduction",
+          url: "#introduction",
         },
         {
-          title: "Starred",
+          title: "Features",
+          url: "#features",
+        },
+      ],
+    },
+    {
+      title: "E.B.S. N.V.",
+      url: "#",
+      icon: (
+        <RobotIcon
+        />
+      ),
+      items: [
+        {
+          title: "Inloggen",
           url: "#",
         },
         {
@@ -73,52 +79,12 @@ const data = {
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: (
-        <RobotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
+      title: "Budget",
       url: "#",
       icon: (
         <BookOpenIcon
         />
-      ),
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
+      )
     },
     {
       title: "Settings",
@@ -133,17 +99,21 @@ const data = {
           url: "#",
         },
         {
-          title: "Team",
+          title: "Account",
           url: "#",
         },
         {
-          title: "Billing",
+          title: "EBS login",
           url: "#",
         },
         {
-          title: "Limits",
+          title: "Budget",
           url: "#",
         },
+        {
+          title: "AI chatbox",
+          url: "#",
+        }
       ],
     },
   ],
@@ -182,8 +152,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
+        <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

@@ -17,7 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { DotsThreeOutlineIcon, FolderIcon, ShareFatIcon, TrashIcon } from "@phosphor-icons/react"
-
+import Link from "next/link"
 export function NavProjects({
   projects,
 }: {
@@ -35,12 +35,17 @@ export function NavProjects({
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
-              <a href={item.url}>
-                {item.icon}
-                <span>{item.name}</span>
-              </a>
-            </SidebarMenuButton>
+          <SidebarMenuButton asChild>
+            <Link 
+              href={item.url}
+              onClick={(e) => {
+                e.stopPropagation() 
+              }}
+            >
+              {item.icon}
+              <span>{item.name}</span>
+            </Link>
+          </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction

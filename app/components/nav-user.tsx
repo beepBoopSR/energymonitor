@@ -1,5 +1,5 @@
 "use client"
-
+//shad thingy
 import {
   Avatar,
   AvatarFallback,
@@ -89,7 +89,7 @@ export function NavUser({
               <DropdownMenuItem>
                 <CreditCardIcon
                 />
-                Billing
+                E.B.S. N.V.
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <BellIcon

@@ -48,14 +48,14 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: #132A13;
+    --foreground: #90A955;
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
     --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
+    --primary-foreground: oklch(98.511% 0.00011 271.152);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
@@ -126,4 +126,21 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer utilities {
+  @keyframes highlight-fade {
+    0% {
+      background-color: rgba(34,197,94,0.3);
+      box-shadow: 0 0 0 15px rgba(34,197,94,0.5);
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
+
+  .animate-highlight {
+    animation: highlight-fade 2s ease-out-into-play;
+  }
 }
