@@ -1,5 +1,5 @@
 "use client"
-//sidebar
+
 import * as React from "react"
 
 import { NavMain } from "@/components/nav-main"
@@ -13,9 +13,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { HouseIcon, RowsIcon, WaveformIcon, CommandIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
+import { HouseIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
 
-// This is sample data.
 const data = {
   user: {
     name: "shadcn",
@@ -25,18 +24,12 @@ const data = {
   teams: [
     {
       name: "House 1",
-      logo: (
-        <HouseIcon
-        />
-      ),
+      logo: <HouseIcon />,
       plan: "Network",
     },
     {
       name: "House 2",
-      logo: (
-        <HouseIcon
-        />
-      ),
+      logo: <HouseIcon />,
       plan: "Network",
     },
   ],
@@ -44,10 +37,7 @@ const data = {
     {
       title: "beepBoopSR",
       url: "/beepBoopSR/about",
-      icon: (
-        <TerminalIcon
-        />
-      ),
+      icon: <TerminalIcon />,
       isActive: true,
       items: [
         {
@@ -62,85 +52,35 @@ const data = {
     },
     {
       title: "E.B.S. N.V.",
-      url: "#",
-      icon: (
-        <RobotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Inloggen",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
+      url: "/beepBoopSR/ebs",
+      icon: <RobotIcon />,
     },
     {
-      title: "Budget",
-      url: "#",
-      icon: (
-        <BookOpenIcon
-        />
-      )
+      title: "Budget", 
+      url: "/beepBoopSR/budget",
+      icon: <BookOpenIcon />,
     },
     {
       title: "Settings",
-      url: "#",
-      icon: (
-        <GearIcon
-        />
-      ),
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Account",
-          url: "#",
-        },
-        {
-          title: "EBS login",
-          url: "#",
-        },
-        {
-          title: "Budget",
-          url: "#",
-        },
-        {
-          title: "AI chatbox",
-          url: "#",
-        }
-      ],
+      url: "/beepBoopSR/settings",
+      icon: <GearIcon />,
     },
   ],
-  projects: [
+  platform: [
     {
       name: "Design Engineering",
       url: "#",
-      icon: (
-        <CropIcon
-        />
-      ),
+      icon: <CropIcon />,
     },
     {
       name: "Sales & Marketing",
       url: "#",
-      icon: (
-        <ChartPieIcon
-        />
-      ),
+      icon: <ChartPieIcon />,
     },
     {
       name: "Travel",
       url: "#",
-      icon: (
-        <MapTrifoldIcon
-        />
-      ),
+      icon: <MapTrifoldIcon />,
     },
   ],
 }
@@ -152,7 +92,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.projects} />
+        <NavProjects projects={data.platform} />
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>

@@ -1,5 +1,12 @@
-import type { NextConfig } from "next"
+import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {}
+const nextConfig: NextConfig = {
+  experimental: {
+    // @ts-ignore: Next.js 15 types sometimes miss the turbo key
+    turbo: {
+      root: __dirname,
+    },
+  },
+};
 
-export default nextConfig
+export default nextConfig;

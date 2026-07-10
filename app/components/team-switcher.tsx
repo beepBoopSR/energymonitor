@@ -42,11 +42,13 @@ export function TeamSwitcher({
 
   React.useEffect(() => {
     if (activeTeam) {
-      if (window.location.pathname.endsWith('/about')) {
-        return; 
-      }
       const teamSlug = activeTeam.name.toLowerCase().replace(/\s+/g, '-');
-      router.push(`/beepBoopSR?team=${teamSlug}`)
+      const currentPath = window.location.pathname;
+
+      if (currentPath.endsWith('/about')) {
+        return;
+      }
+      router.push(`${currentPath}?team=${teamSlug}`);
     }
   }, [activeTeam, router]);
 

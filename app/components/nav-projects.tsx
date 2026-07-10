@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import { DotsThreeOutlineIcon, FolderIcon, ShareFatIcon, TrashIcon } from "@phosphor-icons/react"
 import Link from "next/link"
+import {useRouter} from "next/navigation"
 export function NavProjects({
   projects,
 }: {
@@ -29,19 +30,27 @@ export function NavProjects({
 }) {
   const { isMobile } = useSidebar()
 
+  const {activeTeam} = useSidebar();
+  const teamSlug = activeTeam ? activeTeam.name.toLowerCase().replace(/\s+/g, '-') : '';
+  const router = useRouter();
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-          <SidebarMenuButton asChild>
+          <SidebarMenuButton asChild
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation() 
+          const targetPath = item.url;
+          const targetUrl = teamSlug ? `${item.url}?team=${teamSlug}` : targetPath;
+          router.push(targetUrl);
+          }}
+          >
             <Link 
-              href={item.url}
-              onClick={(e) => {
-                e.stopPropagation() 
-              }}
-            >
+              href={item.url}>
               {item.icon}
               <span>{item.name}</span>
             </Link>
