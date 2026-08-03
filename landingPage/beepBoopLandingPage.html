@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>energyLink — Know Your Power</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07100C;
+  --panel:#0C1A13;
+  --panel2:#0F2018;
+  --line:#1C3628;
+  --green:#2EE58A;
+  --green-dim:#1A9C5C;
+  --amber:#FFB347;
+  --text:#E8F5EE;
+  --muted:#7FA391;
+  --danger:#FF6B57;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Sora',sans-serif;
+  overflow-x:hidden;
+  line-height:1.6;
+}
+/* grid background */
+body::before{
+  content:"";
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(46,229,138,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(46,229,138,0.04) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+  z-index:0;
+}
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* ── NAV ── */
+nav{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:28px 0;
+}
+.logo{
+  font-family:'Space Mono',monospace;
+  font-weight:700;font-size:1.25rem;letter-spacing:-0.5px;
+}
+.logo .beep{color:var(--text)}
+.logo .boop{color:var(--green)}
+.logo .cursor{
+  display:inline-block;width:10px;height:1.1em;
+  background:var(--green);margin-left:4px;vertical-align:middle;
+  animation:blink 1.1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{
+  color:var(--muted);text-decoration:none;font-size:0.9rem;font-weight:400;
+  transition:color .2s;
+}
+.nav-links a:hover{color:var(--green)}
+.btn{
+  display:inline-block;
+  background:var(--green);color:#04170D;
+  padding:12px 28px;border-radius:6px;
+  font-weight:600;font-size:0.92rem;text-decoration:none;
+  border:1px solid var(--green);
+  transition:all .2s;
+}
+.btn:hover{background:transparent;color:var(--green)}
+.btn-ghost{
+  background:transparent;color:var(--green);
+  border:1px solid var(--line);
+}
+.btn-ghost:hover{border-color:var(--green)}
+
+/* ── HERO ── */
+.hero{
+  padding:88px 0 64px;
+  display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;
+}
+.tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Space Mono',monospace;font-size:0.75rem;
+  color:var(--green);border:1px solid var(--line);
+  padding:6px 14px;border-radius:100px;margin-bottom:28px;
+  background:rgba(46,229,138,0.05);
+}
+.tag::before{
+  content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(46,229,138,.5)}
+  50%{box-shadow:0 0 0 7px rgba(46,229,138,0)}
+}
+h1{
+  font-size:clamp(2.4rem,5.2vw,3.9rem);
+  font-weight:800;line-height:1.08;letter-spacing:-2px;
+  margin-bottom:24px;
+}
+h1 .hl{color:var(--green)}
+h1 .srd{
+  font-family:'Space Mono',monospace;
+  color:var(--amber);font-weight:700;
+}
+.sub{
+  color:var(--muted);font-size:1.08rem;font-weight:300;
+  max-width:480px;margin-bottom:36px;
+}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+
+/* live demo card */
+.demo{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
+}
+.demo-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;border-bottom:1px solid var(--line);
+  font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);
+}
+.demo-head .live{
+  color:var(--green);display:flex;align-items:center;gap:6px;
+}
+.demo-head .live::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:pulse 1.6s infinite;
+}
+.demo-body{padding:20px}
+.circuit{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px dashed var(--line);
+}
+.circuit:last-of-type{border-bottom:none}
+.circuit .name{font-size:0.86rem;color:var(--muted)}
+.circuit .watts{
+  font-family:'Space Mono',monospace;font-weight:700;font-size:1.05rem;
+}
+.bar{
+  height:5px;border-radius:3px;background:var(--line);
+  width:110px;margin:0 16px;flex-shrink:0;overflow:hidden;
+}
+.bar i{
+  display:block;height:100%;background:var(--green);border-radius:3px;
+  transition:width 1s ease;
+}
+.bar i.warn{background:var(--amber)}
+.demo-total{
+  margin-top:16px;padding:16px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.demo-total .label{font-size:0.78rem;color:var(--muted)}
+.demo-total .val{
+  font-family:'Space Mono',monospace;font-weight:700;
+  font-size:1.5rem;color:var(--amber);
+}
+.demo-tip{
+  margin-top:14px;padding:14px 16px;
+  border-left:3px solid var(--green);
+  background:rgba(46,229,138,0.06);
+  border-radius:0 8px 8px 0;
+  font-size:0.85rem;color:var(--text);
+}
+.demo-tip b{color:var(--green);font-family:'Space Mono',monospace;font-size:0.72rem;display:block;margin-bottom:4px}
+
+/* ── STATS STRIP ── */
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;margin:32px 0 96px;
+  background:var(--panel);
+}
+.stat{
+  padding:28px 24px;text-align:center;
+  border-right:1px solid var(--line);
+}
+.stat:last-child{border-right:none}
+.stat .num{
+  font-family:'Space Mono',monospace;font-weight:700;
+  font-size:1.9rem;color:var(--green);
+}
+.stat .lbl{font-size:0.78rem;color:var(--muted);margin-top:4px}
+
+/* ── SECTIONS ── */
+section{padding:72px 0}
+.kicker{
+  font-family:'Space Mono',monospace;font-size:0.75rem;
+  color:var(--green);text-transform:uppercase;letter-spacing:2px;
+  margin-bottom:14px;
+}
+h2{
+  font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:800;
+  letter-spacing:-1px;line-height:1.15;margin-bottom:16px;
+}
+.lead{color:var(--muted);max-width:560px;font-weight:300}
+
+/* problem cards */
+.cards3{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;
+}
+.card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:30px 26px;
+  transition:transform .25s,border-color .25s;
+}
+.card:hover{transform:translateY(-5px);border-color:var(--green-dim)}
+.card .icon{
+  font-size:1.6rem;margin-bottom:18px;display:block;
+}
+.card h3{font-size:1.08rem;font-weight:600;margin-bottom:10px}
+.card p{font-size:0.88rem;color:var(--muted);font-weight:300}
+
+/* how it works */
+.steps{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:48px;
+}
+.step{
+  position:relative;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:28px 22px;
+}
+.step .n{
+  font-family:'Space Mono',monospace;font-weight:700;
+  font-size:0.75rem;color:var(--green);
+  border:1px solid var(--line);border-radius:6px;
+  display:inline-block;padding:4px 10px;margin-bottom:16px;
+  background:rgba(46,229,138,.05);
+}
+.step h3{font-size:1rem;margin-bottom:8px}
+.step p{font-size:0.84rem;color:var(--muted);font-weight:300}
+
+/* features */
+.feat-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:48px;
+}
+.feat{
+  display:flex;gap:18px;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:26px;
+}
+.feat .fi{
+  flex-shrink:0;width:44px;height:44px;border-radius:10px;
+  background:rgba(46,229,138,.08);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+}
+.feat h3{font-size:1rem;margin-bottom:6px}
+.feat p{font-size:0.86rem;color:var(--muted);font-weight:300}
+
+/* SR banner */
+.sr-banner{
+  margin-top:96px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:56px 48px;
+  background:
+    radial-gradient(ellipse at top left, rgba(46,229,138,.09), transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(255,179,71,.07), transparent 55%),
+    var(--panel);
+  text-align:center;
+}
+.sr-banner h2{margin-bottom:12px}
+.sr-banner p{color:var(--muted);max-width:540px;margin:0 auto 32px;font-weight:300}
+
+/* footer */
+footer{
+  border-top:1px solid var(--line);
+  padding:36px 0;margin-top:72px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:0.8rem;color:var(--muted);
+}
+footer .logo{font-size:1rem}
+
+/* reveal animation */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:48px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat:nth-child(2){border-right:none}
+  .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid var(--line)}
+  .cards3{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .feat-grid{grid-template-columns:1fr}
+  .nav-links a:not(.btn){display:none}
+}
+@media(max-width:560px){
+  .steps{grid-template-columns:1fr}
+  .sr-banner{padding:40px 24px}
+}
+.energylink{font-weight:800;color:#e5484d;}
+/* stacked brand lockup: beepBoop small on top, energyLink larger below */
+.lockup{display:inline-flex;flex-direction:column;line-height:1;}
+.lockup .team{font-family:'Space Mono',monospace;font-weight:700;font-size:0.8rem;letter-spacing:-0.5px;opacity:0.75;}
+.lockup .team .beep{color:var(--text);} .lockup .team .boop{color:var(--green);}
+.lockup .product{font-family:'Sora',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:-1px;color:#e5484d;margin-top:2px;}
+.footer-lockup .product{font-size:1.35rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- NAV -->
+<nav>
+  <div class="lockup"><span class="team"><span class="beep">beep</span><span class="boop">Boop</span></span><span class="product">energyLink</span></div>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#features" class="btn btn-ghost">Features</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="tag">HACKOMATION 2026 · SUSTAINABLE DEVELOPMENT × AI</div>
+    <h1>Know your power.<br><span class="hl">Cut your bill.</span><br>In <span class="srd">SRD</span>, not surprises.</h1>
+    <p class="sub"><span class="energylink">energyLink</span> is an AI-powered energy monitor built for Surinamese homes, by team beepBoop. See exactly what every circuit costs — live — and get advice that actually saves you money.</p>
+    <div class="hero-cta">
+      <a href="#how" class="btn">How it works</a>
+      <a href="#features" class="btn btn-ghost">Features</a>
+    </div>
+  </div>
+
+  <!-- LIVE DEMO CARD -->
+  <div class="demo" id="demo">
+    <div class="demo-head">
+      <span>energylink_001 · Paramaribo</span>
+      <span class="live">LIVE</span>
+    </div>
+    <div class="demo-body">
+      <div class="circuit">
+        <span class="name">Groep 1</span>
+        <div class="bar"><i id="b1" style="width:78%"></i></div>
+        <span class="watts" id="w1">1,204 W</span>
+      </div>
+      <div class="circuit">
+        <span class="name">Groep 2</span>
+        <div class="bar"><i id="b2" style="width:32%"></i></div>
+        <span class="watts" id="w2">398 W</span>
+      </div>
+      <div class="circuit">
+        <span class="name">Groep 3</span>
+        <div class="bar"><i id="b3" style="width:14%"></i></div>
+        <span class="watts" id="w3">145 W</span>
+      </div>
+      <div class="circuit">
+        <span class="name">Groep 4</span>
+        <div class="bar"><i id="b4" style="width:0%"></i></div>
+        <span class="watts" id="w4">0 W</span>
+      </div>
+      <div class="demo-total">
+        <div>
+          <div class="label">COST TODAY</div>
+          <div class="val" id="cost">SRD 4.23</div>
+        </div>
+        <div style="text-align:right">
+          <div class="label">PREDICTED BILL</div>
+          <div class="val" style="font-size:1.1rem;color:var(--text)" id="pred">SRD 118</div>
+        </div>
+      </div>
+      <div class="demo-tip">
+        <b>🤖 AI TIP</b>
+        Je zit nog 60 kWh onder de volgende tariefschijf. Blijf eronder en bespaar <span style="color:var(--amber);font-family:'Space Mono',monospace">SRD 45</span> deze maand.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats reveal">
+  <div class="stat"><div class="num">&lt;$60</div><div class="lbl">total hardware cost</div></div>
+  <div class="stat"><div class="num">1 mo</div><div class="lbl">pays for itself</div></div>
+  <div class="stat"><div class="num">24/7</div><div class="lbl">real-time monitoring</div></div>
+  <div class="stat"><div class="num">100%</div><div class="lbl">built for Suriname</div></div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="kicker">// The problem</div>
+  <h2 class="reveal">Your electricity bill is a<br>mystery until it arrives.</h2>
+  <p class="lead reveal">Surinamese households pay bills they don't understand, for energy they didn't need to use — with no tool to see where the money goes.</p>
+
+  <div class="cards3">
+    <div class="card reveal">
+      <span class="icon">⚡</span>
+      <h3>Unreliable grid</h3>
+      <p>EBS outages are a daily reality. Families fall back on diesel generators with zero visibility on what running them actually costs.</p>
+    </div>
+    <div class="card reveal">
+      <span class="icon">🔍</span>
+      <h3>Zero visibility</h3>
+      <p>No household knows which appliance eats the most power. The monthly bill arrives as a shock — never as a choice.</p>
+    </div>
+    <div class="card reveal">
+      <span class="icon">🌡️</span>
+      <h3>Tropical energy drain</h3>
+      <p>In Suriname's heat, AC and refrigeration run around the clock. Without monitoring, the waste is invisible and enormous.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="kicker">// How it works</div>
+  <h2 class="reveal">From clamp to insight<br>in four steps.</h2>
+
+  <div class="steps">
+    <div class="step reveal">
+      <span class="n">01 · SENSE</span>
+      <h3>Clamp it on</h3>
+      <p>Non-invasive current clamps wrap around your existing wiring. No cutting, no electrician, no risk.</p>
+    </div>
+    <div class="step reveal">
+      <span class="n">02 · MEASURE</span>
+      <h3>ESP32 reads everything</h3>
+      <p>Voltage and current per circuit, converted to Watts and SRD using real EBS tariffs — every few seconds.</p>
+    </div>
+    <div class="step reveal">
+      <span class="n">03 · ANALYSE</span>
+      <h3>AI finds the waste</h3>
+      <p>Our AI studies your usage patterns, predicts your bill, and spots the habits costing you money.</p>
+    </div>
+    <div class="step reveal">
+      <span class="n">04 · ACT</span>
+      <h3>You save</h3>
+      <p>Clear advice in your language, budget warnings before you overspend, and outage alerts before the lights go out.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="kicker">// Features</div>
+  <h2 class="reveal">Everything on the dashboard.<br>Nothing in the dark.</h2>
+
+  <div class="feat-grid">
+    <div class="feat reveal">
+      <div class="fi">📊</div>
+      <div>
+        <h3>Real-time monitoring per circuit</h3>
+        <p>Live Watts for every circuit group in your home — updated continuously on the web dashboard.</p>
+      </div>
+    </div>
+    <div class="feat reveal">
+      <div class="fi">💰</div>
+      <div>
+        <h3>Cost in SRD, not kWh</h3>
+        <p>Every reading converted using real EBS tariff rates. See what today cost you — and what this month will cost before the bill exists.</p>
+      </div>
+    </div>
+    <div class="feat reveal">
+      <div class="fi">🤖</div>
+      <div>
+        <h3>AI insights & tips</h3>
+        <p>Our AI analyses your patterns and tells you — in plain language — exactly what to change and how much you'll save.</p>
+      </div>
+    </div>
+    <div class="feat reveal">
+      <div class="fi">🎯</div>
+      <div>
+        <h3>Budget mode</h3>
+        <p>Set a monthly budget — for the whole house or per room. The AI warns you before you go over, not after.</p>
+      </div>
+    </div>
+    <div class="feat reveal">
+      <div class="fi">🔔</div>
+      <div>
+        <h3>Outage preparation</h3>
+        <p><span class="energylink">energyLink</span> tracks EBS announcements and warns you before scheduled outages — so you're ready, not surprised.</p>
+      </div>
+    </div>
+    <div class="feat reveal">
+      <div class="fi">📈</div>
+      <div>
+        <h3>Bill prediction</h3>
+        <p>Know your end-of-month bill by day 10 — while there's still time to change it. No more bill-day shock.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BANNER -->
+<div class="sr-banner reveal">
+  <div class="kicker">// energyLink · beepBoop · Hackomation 2026</div>
+  <h2>Built in Suriname.<br>For Suriname. 🇸🇷</h2>
+  <p>Every global energy monitor was designed for someone else's grid, someone else's currency, someone else's climate. We built ours for home.</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="lockup footer-lockup"><span class="team"><span class="beep">beep</span><span class="boop">Boop</span></span><span class="product">energyLink</span></div>
+  <div>Team beepBoop · Hackomation 2026 · Sustainable Development × AI</div>
+</footer>
+
+</div>
+
+<script>
+// scroll reveal
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// fake live data wiggle
+const rnd=(base,jit)=>Math.max(0,Math.round(base+(Math.random()-0.5)*jit));
+const fmt=n=>n.toLocaleString('en-US');
+let cost=4.23;
+setInterval(()=>{
+  const ac=rnd(1204,90), kit=rnd(398,60), li=rnd(145,20), gen=0;
+  document.getElementById('w1').textContent=fmt(ac)+' W';
+  document.getElementById('w2').textContent=fmt(kit)+' W';
+  document.getElementById('w3').textContent=fmt(li)+' W';
+  document.getElementById('w4').textContent=gen+' W';
+  document.getElementById('b1').style.width=Math.min(100,ac/16)+'%';
+  document.getElementById('b2').style.width=Math.min(100,kit/16)+'%';
+  document.getElementById('b3').style.width=Math.min(100,li/16)+'%';
+  document.getElementById('b1').className = ac>1350 ? 'warn' : '';
+  cost+=0.001;
+  document.getElementById('cost').textContent='SRD '+cost.toFixed(2);
+},1800);
+</script>
+</body>
+</html>
