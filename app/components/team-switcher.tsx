@@ -1,14 +1,12 @@
 "use client"
 
 import * as React from "react"
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -17,9 +15,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { CaretUpDownIcon, PlusIcon, HouseIcon, TrashIcon, ListIcon} from "@phosphor-icons/react"
-
-import {useRouter} from "next/navigation"
+import { CaretUpDownIcon, PlusIcon, HouseIcon, TrashIcon, ListIcon } from "@phosphor-icons/react"
+import { useRouter, usePathname } from "next/navigation"
 
 export function TeamSwitcher({
   teams,
@@ -32,6 +29,7 @@ export function TeamSwitcher({
 }) {
   const { isMobile, toggleSidebar, activeTeam, setActiveTeam } = useSidebar()
   const router = useRouter()
+  const pathname = usePathname() // Geeft de huidige pagina terug (bv. /beepBoopSR/settings)
   const [networks, setNetworks] = React.useState(teams)
 
   React.useEffect(() => {
@@ -40,17 +38,19 @@ export function TeamSwitcher({
     }
   }, [teams, activeTeam, setActiveTeam])
 
-  React.useEffect(() => {
-    if (activeTeam) {
-      const teamSlug = activeTeam.name.toLowerCase().replace(/\s+/g, '-');
-      const currentPath = window.location.pathname;
-
-      if (currentPath.endsWith('/about')) {
-        return;
-      }
-      router.push(`${currentPath}?team=${teamSlug}`);
+  // Deze functie voert de wissel correct uit zonder je vast te zetten
+  const handleTeamSelect = (team: typeof teams[0]) => {
+    setActiveTeam(team)
+    const teamSlug = team.name.toLowerCase().replace(/\s+/g, '-')
+    
+    // Als de gebruiker op een subpagina zit (zoals settings), behouden we die pagina!
+    // Zit de gebruiker op de root of een onbekende plek? Dan sturen we ze naar de blokkenpagina.
+    if (pathname === "/" || pathname === "") {
+      router.push(`/beepBoopSR?team=${teamSlug}`)
+    } else {
+      router.push(`${pathname}?team=${teamSlug}`)
     }
-  }, [activeTeam, router]);
+  }
 
   const handleAddNetwork = () => {
     const name = window.prompt("Enter new network name:")
@@ -72,18 +72,17 @@ export function TeamSwitcher({
 
   return (
     <SidebarMenu>
-      <div className="flex w-full items-center justify-start group-data- [collapsible=icon]:justify-center px-2 pb-1.5">
-        <button 
-          onClick={ (e) => {
+      <div className="flex w-full items-center justify-start group-data-[collapsible=icon]:justify-center px-2 pb-1.5">
+        <button
+          onClick={(e) => {
             e.preventDefault()
             toggleSidebar()
           }}
-          className="flex size-8 items-center justify-center rounded-md hover:bg-sidebar-accent text-sidebar-forground cursor-pointer transition-colors"
+          className="flex size-8 items-center justify-center rounded-md hover:bg-sidebar-accent text-sidebar-foreground cursor-pointer transition-colors"
           aria-label="Toggle Sidebar"
-          >
-            <ListIcon className="size-5" />
-          
-          </button>
+        >
+          <ListIcon className="size-5" />
+        </button>
       </div>
       <SidebarMenuItem>
         <DropdownMenu>
@@ -92,29 +91,22 @@ export function TeamSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-            <div 
-              onClick={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                const teamSlug = activeTeam ? activeTeam.name.toLowerCase().replace(/\s+/g, '-') : '';
-                router.push(teamSlug ? `/beepBoopSR?team=${teamSlug}` : "/beepBoopSR")
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                e.preventDefault() 
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                e.preventDefault() 
-              }}
-              className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              {currentLogo}
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{currentName}</span>
-              <span className="truncate text-xs">{currentPlan}</span>
-            </div>
+              {/* Klik op het logo brengt je direct terug naar de hoofdpagina met de blokken van dat huis */}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  const teamSlug = activeTeam ? activeTeam.name.toLowerCase().replace(/\s+/g, '-') : 'house-1';
+                  router.push(`/beepBoopSR?team=${teamSlug}`)
+                }}
+                className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                {currentLogo}
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{currentName}</span>
+                <span className="truncate text-xs">{currentPlan}</span>
+              </div>
               <CaretUpDownIcon className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -130,7 +122,7 @@ export function TeamSwitcher({
             {networks.map((team) => (
               <DropdownMenuItem
                 key={team.name}
-                onClick={() => setActiveTeam(team)}
+                onClick={() => handleTeamSelect(team)} // Gebruik de nieuwe flexibele selectiefunctie
                 className="flex items-center justify-between gap-2 p-2 cursor-pointer w-full"
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -160,10 +152,7 @@ export function TeamSwitcher({
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={handleAddNetwork}
-              className="gap-2 p-2 cursor-pointer"
-            >
+            <DropdownMenuItem onClick={handleAddNetwork} className="gap-2 p-2 cursor-pointer">
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <PlusIcon className="size-4" />
               </div>
