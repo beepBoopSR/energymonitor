@@ -1,11 +1,8 @@
 "use client"
 
 import * as React from "react"
-
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -13,86 +10,60 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { HouseIcon, TerminalIcon, RobotIcon, BookOpenIcon, GearIcon, CropIcon, ChartPieIcon, MapTrifoldIcon } from "@phosphor-icons/react"
-
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "House 1",
-      logo: <HouseIcon />,
-      plan: "Network",
-    },
-    {
-      name: "House 2",
-      logo: <HouseIcon />,
-      plan: "Network",
-    },
-  ],
-  navMain: [
-    {
-      title: "beepBoopSR",
-      url: "/beepBoopSR/about",
-      icon: <TerminalIcon />,
-      isActive: true,
-      items: [
-        {
-          title: "Introduction",
-          url: "#introduction",
-        },
-        {
-          title: "Features",
-          url: "#features",
-        },
-      ],
-    },
-    {
-      title: "E.B.S. N.V.",
-      url: "/beepBoopSR/ebs",
-      icon: <RobotIcon />,
-    },
-    {
-      title: "Budget", 
-      url: "/beepBoopSR/budget",
-      icon: <BookOpenIcon />,
-    },
-    {
-      title: "Settings",
-      url: "/beepBoopSR/settings",
-      icon: <GearIcon />,
-    },
-  ],
-  platform: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: <CropIcon />,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: <ChartPieIcon />,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: <MapTrifoldIcon />,
-    },
-  ],
-}
+import {
+  GaugeIcon,
+  LightningIcon,
+  GearIcon,
+  InfoIcon,
+} from "@phosphor-icons/react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  // energyLink is one device per household — no team/house switching.
+  const data = {
+    user: {
+      name: "energyLink",
+      email: "beepboop_001",
+      avatar: "",
+    },
+    navMain: [
+      {
+        title: "Dashboard",
+        url: "/dashboard",
+        icon: <GaugeIcon />,
+        isActive: true,
+      },
+      {
+        title: "Uitval",
+        url: "/uitval",
+        icon: <LightningIcon />,
+      },
+      {
+        title: "Instellingen",
+        url: "/instellingen",
+        icon: <GearIcon />,
+      },
+      {
+        title: "Over",
+        url: "/over",
+        icon: <InfoIcon />,
+      },
+    ],
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        {/* energyLink brand lockup */}
+        <div className="flex flex-col px-2 py-1.5 group-data-[collapsible=icon]:hidden">
+          <span className="text-xs font-mono text-muted-foreground leading-none">
+            beep<span className="text-[color:var(--ok)]">Boop</span>
+          </span>
+          <span className="text-lg font-extrabold leading-tight tracking-tight text-[color:var(--primary)]">
+            energyLink
+          </span>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.platform} />
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
