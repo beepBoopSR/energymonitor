@@ -111,25 +111,25 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 p-4 md:p-6">
       {/* HERO */}
-      <div className="relative overflow-hidden rounded-2xl p-6 text-white shadow-md"
-        style={{ background: "linear-gradient(135deg, var(--chart-5) 0%, var(--secondary-foreground) 100%)" }}>
+      <div className="relative overflow-hidden rounded-2xl border-2 p-6 shadow-sm"
+        style={{ background: "var(--secondary)", borderColor: "var(--chart-5)" }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-white/70">Live vermogen</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Live vermogen</div>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-6xl font-bold tabular-nums">{online ? num(data.live!.watts, 0) : "—"}</span>
-              <span className="text-2xl text-white/70">W</span>
+              <span className="text-6xl font-bold tabular-nums text-foreground">{online ? num(data.live!.watts, 0) : "—"}</span>
+              <span className="text-2xl text-muted-foreground">W</span>
             </div>
-            <div className="mt-2 text-sm text-white/80 tabular-nums">
+            <div className="mt-2 text-sm text-muted-foreground tabular-nums">
               {online ? num(data.live!.voltage, 1) : "—"} V · {online ? num(data.live!.current, 3) : "—"} A
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-medium" style={{ color: gridColor }}>
               <span className="size-2 rounded-full" style={{ background: gridColor }} />{gridLabel}
             </span>
-            <span className="text-xs text-white/70">{online ? "apparaat online" : "apparaat offline"}</span>
-            <span className="mt-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs">
+            <span className="text-xs text-muted-foreground">{online ? "apparaat online" : "apparaat offline"}</span>
+            <span className="mt-1 rounded-lg bg-card px-2.5 py-1 text-xs text-foreground">
               {APPLIANCE_NAMES[data.appliance] ?? data.appliance}
             </span>
           </div>
