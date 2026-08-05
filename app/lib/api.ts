@@ -5,7 +5,7 @@
 // so flipping USE_MOCK to false is the only change needed to go live.
 
 //  toggle this to false when the backend is running 
-export const USE_MOCK = true;
+export const USE_MOCK = false;
 
 // Next.js dev runs on 3001
 const API_BASE = "http://localhost:3000";
