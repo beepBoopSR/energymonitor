@@ -4,14 +4,14 @@
 // real endpoint. The mock is shaped EXACTLY like a real /api/dashboard response,
 // so flipping USE_MOCK to false is the only change needed to go live.
 
-// ── toggle this to false when the backend is running ──
+//  toggle this to false when the backend is running 
 export const USE_MOCK = true;
 
-// backend runs on port 3000 (firmware also posts there); Next.js dev runs on 3001
+// Next.js dev runs on 3001
 const API_BASE = "http://localhost:3000";
 const DEVICE_ID = "beepboop_001";
 
-// ── Types (match the real response) ──
+//  Types (match the real response)
 export type DashboardData = {
   success: boolean;
   summary: {
@@ -25,7 +25,7 @@ export type DashboardData = {
     tier_upper: number;
     kwh_to_next: number;
   };
-  grid: string; 
+  grid: string;              
   outages: { timestamp: string; duration_min: number }[];
   budget: number | null;
   vsYesterday: { today_kwh: number; yesterday_kwh: number; pct: number };
@@ -53,7 +53,7 @@ export type DashboardData = {
   hourlyToday: { hour: number; kwh: number; cost: number }[];
 };
 
-//  Mock: identical shape to a real response (from the actual backend). used for testing
+// ── Mock: identical shape to a real response (from the actual backend) ──
 const MOCK: DashboardData = {
   success: true,
   summary: {
@@ -63,7 +63,7 @@ const MOCK: DashboardData = {
     cost_today: 6.74,
     cost_month: 486.2,
     tier_rate: 2.85,
-    tier_lower: 400,   // note: with mock 214 kWh you'd be tier 1
+    tier_lower: 400,
     tier_upper: 900,   
     kwh_to_next: 185.4,
   },
@@ -112,7 +112,7 @@ const MOCK: DashboardData = {
     { day: "2026-07-28", kwh: 10.2, cost: 20.1 },
     { day: "2026-07-29", kwh: 21.6, cost: 61.6 },
   ],
-  // per-hour today (hourly graph) , fills as the day progresses
+  // per-hour today (hourly graph) — fills as the day progresses
   hourlyToday: [
     { hour: 0, kwh: 0.42, cost: 0.83 },
     { hour: 1, kwh: 0.38, cost: 0.75 },
@@ -131,7 +131,7 @@ const MOCK: DashboardData = {
   ],
 };
 
-// ── Fetch (real or mock) ──
+// Fetch (real or mock)
 export async function getDashboard(): Promise<DashboardData> {
   if (USE_MOCK) {
     // small delay to mimic network, so loading states are visible while building
@@ -162,3 +162,53 @@ export const APPLIANCE_NAMES: Record<string, string> = {
   niets: "Niets actief",
   onbekend: "Onbekend apparaat",
 };
+
+//  Settings (Instellingen page)
+export type Settings = {
+  phase: number;
+  cycle_code: string | null;
+  budget: number | null;
+};
+
+// EBS cycles CL01–CL19 with their read/invoice days (for the dropdown)
+export const EBS_CYCLES: { code: string; read: number; invoice: number }[] = [
+  { code: "CL01", read: 2,  invoice: 12 }, { code: "CL02", read: 2,  invoice: 12 },
+  { code: "CL03", read: 3,  invoice: 12 }, { code: "CL04", read: 4,  invoice: 12 },
+  { code: "CL05", read: 6,  invoice: 12 }, { code: "CL06", read: 6,  invoice: 18 },
+  { code: "CL07", read: 8,  invoice: 18 }, { code: "CL08", read: 9,  invoice: 18 },
+  { code: "CL09", read: 11, invoice: 18 }, { code: "CL10", read: 11, invoice: 18 },
+  { code: "CL11", read: 12, invoice: 22 }, { code: "CL12", read: 13, invoice: 22 },
+  { code: "CL13", read: 15, invoice: 22 }, { code: "CL14", read: 15, invoice: 22 },
+  { code: "CL15", read: 16, invoice: 28 }, { code: "CL16", read: 18, invoice: 28 },
+  { code: "CL17", read: 18, invoice: 28 }, { code: "CL18", read: 20, invoice: 28 },
+  { code: "CL19", read: 22, invoice: 28 },
+];
+
+const MOCK_SETTINGS: Settings = { phase: 1, cycle_code: "CL01", budget: 500 };
+
+export async function getSettings(): Promise<Settings> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    return { ...MOCK_SETTINGS };
+  }
+  const res = await fetch(`${API_BASE}/api/settings?device_id=${DEVICE_ID}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
+  const d = await res.json();
+  return { phase: d.phase, cycle_code: d.cycle_code, budget: d.budget };
+}
+
+export async function saveSettings(s: Partial<Settings>): Promise<void> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 300));
+    Object.assign(MOCK_SETTINGS, s);
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: DEVICE_ID, ...s }),
+  });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
+  const d = await res.json();
+  if (!d.success) throw new Error(d.error || "opslaan mislukt");
+}
