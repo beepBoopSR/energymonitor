@@ -212,3 +212,13 @@ export async function saveSettings(s: Partial<Settings>): Promise<void> {
   const d = await res.json();
   if (!d.success) throw new Error(d.error || "opslaan mislukt");
 }
+
+// Outages (Uitval page) , reuses the dashboard's outages, plus a fuller history 
+export type OutageEvent = { timestamp: string; duration_min: number };
+
+// For the Uitval page we can reuse getDashboard().outages, but a dedicated
+// fetch lets us pull a longer history later. For now it maps to the same data.
+export async function getOutages(): Promise<OutageEvent[]> {
+  const d = await getDashboard();
+  return d.outages || [];
+}
