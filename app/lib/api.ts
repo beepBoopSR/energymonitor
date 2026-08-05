@@ -222,3 +222,49 @@ export async function getOutages(): Promise<OutageEvent[]> {
   const d = await getDashboard();
   return d.outages || [];
 }
+
+//  AI tips (from separate tips endpoints)
+export type AiTip = {
+  tip_dutch: string;
+  tip_sranan: string;
+  created_at?: string;
+};
+ 
+const MOCK_TIP: AiTip = {
+  tip_dutch:
+    "Je zit nog 185 kWh onder de volgende, duurdere tariefschijf. Blijf eronder om te besparen. Je voorspelde rekening (SRD 1240) ligt boven je budget — probeer je dagelijkse verbruik iets te verlagen.",
+  tip_sranan:
+    "Yu de ete 185 kWh ondro a moro diri taria. Tan ondro en fu spar moni. A rekenin di wi e fruwakti (SRD 1240) de moro hei leki yu bajet — pruberi fu saka yu dagelijks gebroiki pikinso.",
+  created_at: new Date().toISOString(),
+};
+ 
+export async function getLatestTip(): Promise<AiTip | null> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    return { ...MOCK_TIP };
+  }
+  const res = await fetch(`${API_BASE}/api/latest-tip?device_id=${DEVICE_ID}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
+  const d = await res.json();
+  const row = d.tip ?? d;
+  if (!row || !row.tip_dutch) return null;
+  return { tip_dutch: row.tip_dutch, tip_sranan: row.tip_sranan, created_at: row.created_at };
+}
+ 
+export async function generateTip(): Promise<AiTip> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 900)); // mimic Gemini latency
+    return { ...MOCK_TIP, created_at: new Date().toISOString() };
+  }
+  const res = await fetch(`${API_BASE}/api/generate-tip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: DEVICE_ID }),
+  });
+  const d = await res.json();
+  if (!res.ok || d.success === false) {
+    throw new Error(d.error || `backend ${res.status}`);
+  }
+  const row = d.tip ?? d;
+  return { tip_dutch: row.tip_dutch, tip_sranan: row.tip_sranan, created_at: row.created_at };
+}
