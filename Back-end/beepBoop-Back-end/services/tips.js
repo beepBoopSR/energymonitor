@@ -23,6 +23,11 @@ async function generateTip(deviceId) {
   const context = await gatherEnergyContext(deviceId);
   console.log(`  context: ${Date.now() - t}ms`);
 
+    const prompt = buildPrompt(context);
+    console.log('AI PROMPT-');
+    console.log(prompt);
+    console.log('-------');
+
   t = Date.now();
   const model  = genAI.getGenerativeModel({ model: MODEL });
   const result = await model.generateContent(buildPrompt(context));
@@ -51,7 +56,7 @@ function parseTips(raw) {
   const text = raw.trim().replace(/```json/g, '').replace(/```/g, '').trim();
   try {
     const parsed = JSON.parse(text);
-    return { dutch: parsed.dutch ?? '', sranan: parsed.sranan ?? '' };
+    return { dutch: parsed.tip_dutch ?? '', sranan: parsed.tip_sranan ?? '' };
   } catch {
     // Model ignored the format — keep the text rather than lose it
     return { dutch: text, sranan: '' };
