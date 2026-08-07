@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>beepBoop — stroommeter</title>
+<style>
+  /* ── Design tokens ──────────────────────────────────────────
+     Subject: a household electricity meter for Suriname's unstable grid.
+     The signature is the live power bar — a horizontal filament that
+     brightens and stretches with draw, the way a real load would glow.
+     Palette pulled from a meter's own world: enamel housing, copper bus,
+     the amber of an incandescent element, the red of a tripped switch. */
+  :root{
+    --bg:#12100d;            /* dark enamel */
+    --panel:#1b1813;         /* housing face */
+    --line:#2c2720;          /* engraved seam */
+    --ink:#efe7d6;           /* label paint */
+    --dim:#9a8f7c;           /* faded stencil */
+    --copper:#c8863f;        /* live bus */
+    --amber:#e8a13a;         /* element glow */
+    --red:#c8492f;           /* trip */
+    --green:#6f9e5a;         /* normal */
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--mono);line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px}
+
+  /* Masthead — engraved nameplate */
+  header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px;
+    display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+  h1{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase}
+  h1 .b{color:var(--copper)}
+  .sub{font-size:.7rem;color:var(--dim);letter-spacing:.12em}
+  #updated{font-size:.65rem;color:var(--dim)}
+
+  /* Live power — the signature */
+  .live{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:22px 22px 18px;margin-bottom:14px;position:relative;overflow:hidden}
+  .live .cap{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .watts{font-size:3.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;margin:6px 0 2px}
+  .watts small{font-size:1rem;font-weight:400;color:var(--dim);letter-spacing:0}
+  .rate{font-size:.78rem;color:var(--amber)}
+  .filament{height:3px;background:var(--line);border-radius:2px;margin-top:16px;overflow:hidden}
+  .filament i{display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,var(--copper),var(--amber));
+    box-shadow:0 0 10px var(--amber);transition:width .8s ease}
+  .vi{display:flex;gap:20px;margin-top:12px;font-size:.72rem;color:var(--dim)}
+  .vi b{color:var(--ink);font-weight:700}
+
+  /* Grid status pill */
+  .grid{position:absolute;top:18px;right:18px;font-size:.62rem;letter-spacing:.14em;
+    text-transform:uppercase;padding:4px 10px;border-radius:2px;border:1px solid var(--line)}
+  .grid.normal{color:var(--green);border-color:var(--green)}
+  .grid.low{color:var(--amber);border-color:var(--amber)}
+  .grid.down{color:var(--red);border-color:var(--red)}
+  .grid.unknown{color:var(--dim)}
+
+  /* Two-up cards */
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 18px}
+  .card .cap{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .big{font-size:1.7rem;font-weight:700;margin:4px 0 0}
+  .big small{font-size:.8rem;color:var(--dim);font-weight:400}
+  .note{font-size:.7rem;color:var(--dim);margin-top:6px}
+
+  /* Tier meter */
+  .tier .track{height:6px;background:var(--line);border-radius:3px;margin:10px 0 6px;overflow:hidden}
+  .tier .track i{display:block;height:100%;background:var(--copper);width:0%;transition:width .6s}
+
+  /* Bill breakdown */
+  .bill{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 18px;margin-bottom:14px}
+  .bill .cap{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  .lineitem{display:flex;justify-content:space-between;font-size:.82rem;padding:3px 0}
+  .lineitem.total{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:700}
+  .lineitem .sub{color:var(--green)}
+  .flag{font-size:.66rem;color:var(--amber);margin-top:8px}
+
+  /* Bill Section */
+  .budget .track i{display:block;height:100%;background:var(--green);width:0%;transition:width .6s}
+  .budget .track i.over{background:var(--red)}
+
+  /* Tip */
+  .tip{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 18px;margin-bottom:14px}
+  .tip .cap{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+    display:flex;justify-content:space-between;align-items:center}
+  .tip h4{margin:12px 0 3px;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+  .tip p{margin:0;font-size:.86rem}
+  button{font-family:var(--mono);background:transparent;color:var(--copper);
+    border:1px solid var(--copper);border-radius:2px;padding:5px 12px;font-size:.66rem;
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:var(--copper);color:var(--bg)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  /* Outages */
+  .out .cap{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .out ul{list-style:none;margin:0;padding:0}
+  .out li{display:flex;justify-content:space-between;font-size:.76rem;padding:5px 0;border-bottom:1px solid var(--line)}
+  .out li:last-child{border-bottom:0}
+  .out .dur{color:var(--red)}
+
+  .empty{color:var(--dim);font-size:.8rem;font-style:italic}
+  .err{color:var(--red);font-size:.72rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>beep<span class="b">Boop</span></h1>
+      <div class="sub">stroommeter · beepboop_001</div>
+    </div>
+    <div id="updated">verbinden…</div>
+  </header>
+
+  <div class="cap" style="margin-top:10px">EBS-cyclus</div>
+  <div class="note" id="cycleInfo">—</div>
+
+  <!-- Live -->
+  <section class="live">
+    <div class="grid unknown" id="grid">—</div>
+    <div class="cap">nu — kring 1</div>
+    <div class="watts" id="watts">—<small> W</small></div>
+    <div class="rate" id="rate">&nbsp;</div>
+    <div class="filament"><i id="filament"></i></div>
+    <div class="vi">
+      <span>spanning <b id="volt">—</b> V</span>
+      <span>stroom <b id="amp">—</b> A</span>
+    </div>
+    <div class="cap" style="margin-top:14px">gedetecteerd apparaat</div>
+    <div id="appliance" style="font-size:1.1rem;font-weight:700;color:var(--copper)">—</div>
+  </section>
+
+  <!-- Today / Month kWh -->
+  <div class="row">
+    <div class="card">
+      <div class="cap">vandaag</div>
+      <div class="big"><span id="kwhToday">—</span><small> kWh</small></div>
+      <div class="note">energie: SRD <span id="costToday">—</span></div>
+    </div>
+    <div class="card">
+      <div class="cap">deze maand</div>
+      <div class="big"><span id="kwhMonth">—</span><small> kWh</small></div>
+      <div class="note">dag <span id="dom">—</span></div>
+    </div>
+    <div class="card">
+      <div class="cap">vs. gisteren</div>
+      <div class="big"><span id="vsYest">—</span><small> %</small></div>
+    <div class="note" id="vsYestNote">op dit tijdstip</div>
+    </div>
+  </div>
+
+  <!-- Tier -->
+  <div class="card tier">
+    <div class="cap">tariefschijf</div>
+    <div class="track"><i id="tierbar"></i></div>
+    <div class="note">SRD <span id="tierRate">—</span>/kWh ·
+      nog <span id="toNext">—</span> kWh tot de volgende schijf</div>
+  </div>
+
+  <!-- Bill breakdown -->
+  <div class="bill">
+    <div class="cap">voorspelde maandrekening</div>
+    <div class="lineitem"><span>geschatte rekening</span><span>SRD <b id="predBill">—</b></span></div>
+    <div class="flag" id="tariffFlag" style="display:none">
+      subsidiebedrag nog niet bevestigd — dit is een schatting
+    </div>
+    <div class="cap" style="margin-top:12px">voorspelling einde periode</div>
+    <div id="predKwh" class="big">—<small> kWh</small></div>
+    <div class="note" id="predRange">—</div>
+    <div class="note" id="predBill">—</div>
+  </div>
+
+  <div class="bill">
+  <div class="cap">rekening met subsidie</div>
+  <div class="lineitem"><span>rekening</span><span>SRD <b id="billBefore">—</b></span></div>
+  <div class="lineitem"><span>subsidie</span><span class="sub">−SRD <b id="subAmt">—</b></span></div>
+  <div class="lineitem total"><span>te betalen</span><span>SRD <b id="billAfter">—</b></span></div>
+  <div class="flag" id="subFlag">subsidiebedrag is een schatting (nog niet bevestigd)</div>
+  </div>
+
+  <!-- Budget -->
+
+  <div class="card budget" id="budgetCard" style="display:none">
+    <div class="cap">maandbudget</div>
+    <div class="track"><i id="budgetbar"></i></div>
+  <div class="note">
+    voorspeld SRD <span id="predVsBudget">—</span> van SRD <span id="budgetLimit">—</span>
+    · <span id="budgetVerdict">—</span>
+    </div>
+  </div>
+
+  <!-- AI tip -->
+  <section class="tip">
+    <div class="cap">
+      <span>ai-advies</span>
+      <button id="genBtn" onclick="genTip()">nieuwe tip</button>
+    </div>
+    <div id="tipBody"><p class="empty">nog geen tip — druk op "nieuwe tip".</p></div>
+    <div class="err" id="tipErr"></div>
+  </section>
+
+  <!-- Outages -->
+  <!-- Stroomuitval -->
+  <section class="card out">
+    <div class="cap">recente stroomuitval</div>
+    <ul id="outages"><li class="empty">geen uitval geregistreerd</li></ul>
+  </section>
+
+  <!-- Verbruiksmeldingen -->
+  <section class="card out">
+    <div class="cap">verbruiksmeldingen</div>
+   <ul id="anomalies"><li class="empty">geen ongewone pieken</li></ul>
+  </section>
+
+</div>
+
+<script>
+const DEVICE = 'beepboop_001';
+const API = '';               // same origin as the Node backend
+const POLL_MS = 3000;
+
+const $ = id => document.getElementById(id);
+const fmt = (v, dp=2) => (v==null || isNaN(v)) ? '—' : Number(v).toFixed(dp);
+
+async function poll(){
+  try{
+    const r = await fetch(`${API}/api/dashboard?device_id=${DEVICE}`);
+    const d = await r.json();
+    if(!d.success) throw new Error(d.error||'geen data');
+    render(d);
+    $('updated').textContent = 'bijgewerkt ' + new Date().toLocaleTimeString('nl-NL');
+  }catch(e){
+    console.error('POLL ERROR:', e);
+    $('updated').innerHTML = '<span class="err">offline — '+e.message+'</span>';
+  }
+}
+
+function render(d){
+  const s = d.summary || {};
+  const live = d.live || {};
+  const p = d.prediction;
+
+  const w = s.watts ?? live.watts;
+  const v = s.voltage ?? live.voltage;
+  const a = s.current ?? live.current;
+
+  if (d.deviceOnline && d.live) {
+  $('watts').innerHTML = fmt(d.live.watts, 0) + '<small> W</small>';
+  $('volt').textContent = fmt(d.live.voltage, 1);
+  $('amp').textContent  = fmt(d.live.current, 3);
+} else {
+  $('watts').innerHTML = '—<small> W</small>';
+  $('volt').textContent = '—';
+  $('amp').textContent  = '—';
+  // optionally set the grid pill to show "apparaat offline"
+}
+
+
+if (p && p.available) {
+  $('predKwh').innerHTML = fmt(p.forecastKwh, 0) + '<small> kWh</small>';
+  $('predRange').textContent = `tussen ${fmt(p.laagKwh,0)} en ${fmt(p.hoogKwh,0)} kWh · ${p.basis}`;
+  $('predBill').textContent = `≈ SRD ${fmt(p.billSrd, 2)}`;
+} else {
+  $('predKwh').innerHTML = '—<small> kWh</small>';
+  $('predRange').textContent = 'nog te weinig data';
+  $('predBill').textContent = '';
+}
+
+  if (d.cycle && d.cycle.code) {
+  $('cycleInfo').textContent =
+    `${d.cycle.code} · fase ${d.cycle.phase} · meteropname ${d.cycle.read}e · facturering ${d.cycle.invoice}e`;
+  } else {
+  $('cycleInfo').textContent = 'geen cyclus ingesteld';
+  }
+
+  // ── single-appliance label ──
+  const names = {
+    verwarmingselement: 'Verwarmingselement',
+    fan: 'Ventilator', charger: 'Oplader',
+    niets: 'Niets actief', onbekend: 'Onbekend apparaat'
+  };
+  $('appliance').textContent = names[d.appliance] || '—';
+  
+  // Watts + filament (scale 0–2000W for the bar)
+$('watts').innerHTML = (w ?? '—') + '<small> W</small>';
+if (w != null) $('filament').style.width = Math.min(100, (w/2000)*100) + '%';
+
+$('volt').textContent = (v ?? '—');
+$('amp').textContent  = (a ?? '—');
+
+  // Grid status
+  const g = (d.grid||'unknown');
+  const gEl = $('grid');
+  const map = {up:['normal','normaal'],low:['low','lage spanning'],
+               down:['down','uitval'],unknown:['unknown','—']};
+  const [cls,label] = map[g]||map.unknown;
+  gEl.className = 'grid '+cls; gEl.textContent = label;
+
+  // kWh
+  $('kwhToday').textContent = fmt(s.kwh_today,3);
+  $('kwhMonth').textContent = fmt(s.kwh_month,2);
+  $('costToday').textContent = fmt(s.cost_today,2);
+  $('dom').textContent = new Date().getDate();
+
+  const vy = d.vsYesterday;
+  if (vy && vy.yesterday_kwh > 0) {
+    const pct = vy.pct;
+    const up = pct >= 0;
+    $('vsYest').textContent = (up ? '+' : '') + fmt(pct, 0);
+    $('vsYest').style.color = up ? 'var(--amber)' : 'var(--green)';
+    $('vsYestNote').textContent = up ? 'meer dan gisteren' : 'minder dan gisteren';
+  } else {
+    $('vsYest').textContent = '—';
+    $('vsYestNote').textContent = 'geen data van gisteren';
+  }
+
+  // Tier
+  $('tierRate').textContent = fmt(s.tier_rate,3);
+  $('toNext').textContent = fmt(s.kwh_to_next,1);
+  // bar: how far into the block we are is unknown without block bounds,
+  // so show remaining as inverse fill against a nominal 500kWh block
+
+  // exact — uses the block bounds the RPC now returns
+  const span = s.tier_upper - s.tier_lower;
+  const into = s.kwh_month - s.tier_lower;
+  const pct  = span > 0 && isFinite(span) ? (into / span) * 100 : 100;
+  $('tierbar').style.width = Math.max(0, Math.min(100, pct)) + '%';
+
+  // Bill
+  $('predBill').textContent = fmt(s.cost_month,2);
+
+  const subAmt = d.subsidy ?? 0;
+  const after  = s.cost_month;          // already post-subsidy
+  $('billBefore').textContent = fmt(after + subAmt, 2);
+  $('subAmt').textContent     = fmt(subAmt, 2);
+  $('billAfter').textContent  = fmt(after, 2);
+
+// Budget
+if(d.budget){
+  const pred = (d.prediction && d.prediction.available)
+    ? d.prediction.billSrd
+    : (s.cost_month || 0);          // fallback to current cost if no prediction yet
+  const pct  = Math.min(100, (pred / d.budget) * 100);
+  const over = pred > d.budget;
+  $('budgetCard').style.display = '';
+  $('budgetLimit').textContent   = fmt(d.budget, 0);
+  $('predVsBudget').textContent  = fmt(pred, 2);
+  $('budgetVerdict').textContent = over
+    ? 'gaat naar schatting SRD ' + fmt(pred - d.budget, 2) + ' over budget'
+    : 'blijft naar schatting binnen budget';
+  const bar = $('budgetbar');
+  bar.style.width = pct + '%';
+  bar.classList.toggle('over', over);
+} else {
+  $('budgetCard').style.display = 'none';
+}
+
+  // Empty state
+  if(!s.kwh_month){
+    $('watts').innerHTML = '—<small> W</small>';
+    $('updated').textContent = 'wachten op data van de meter…';
+  }
+
+  // Outages
+  const ul = $('outages');
+  if(d.outages && d.outages.length){
+    ul.innerHTML = d.outages.map(o=>{
+      const t = new Date(o.timestamp).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<li><span>${t}</span><span class="dur">${o.duration_min??'?'} min</span></li>`;
+    }).join('');
+  }else{
+    ul.innerHTML = '<li class="empty">geen uitval geregistreerd</li>';
+  }
+
+  const al = $('anomalies');
+  if (d.anomalies && d.anomalies.length) {
+    al.innerHTML = d.anomalies.map(a => {
+    const t = new Date(a.timestamp).toLocaleString('nl-NL',
+      {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<li><span>${esc(a.message)}</span><span class="dur">${t}</span></li>`;
+  }).join('');
+  } else {
+    al.innerHTML = '<li class="empty">geen ongewone pieken</li>';
+  }
+}
+
+// AI tip — loads stored on start, generates on button
+async function loadLatestTip(){
+  try{
+    const r = await fetch(`${API}/api/latest-tip?device_id=${DEVICE}`);
+    const d = await r.json();
+    if(d.tip) showTip(d.tip);
+  }catch(e){/* leave the empty state */}
+}
+function showTip(t){
+  $('tipBody').innerHTML =
+    `<h4>Nederlands</h4><p>${esc(t.tip_dutch||'—')}</p>
+     <h4>Sranan Tongo</h4><p>${esc(t.tip_sranan||'—')}</p>`;
+}
+async function genTip(){
+  const btn = $('genBtn'); btn.disabled = true; btn.textContent='bezig…';
+  $('tipErr').textContent='';
+  try{
+    const r = await fetch(`${API}/api/generate-tip`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({device_id:DEVICE})
+    });
+    const d = await r.json();
+    if(!d.success) throw new Error(d.error);
+    showTip(d.tip);
+  }catch(e){
+    $('tipErr').textContent = e.message;
+  }finally{
+    btn.disabled=false; btn.textContent='nieuwe tip';
+  }
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+poll(); loadLatestTip();
+setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>

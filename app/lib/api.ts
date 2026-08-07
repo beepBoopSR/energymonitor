@@ -1,17 +1,18 @@
-
+// lib/api.ts
+//
 // Single source for talking to the beepBoop backend. Built to switch cleanly
 // between mock data (for building the UI without the backend running) and the
 // real endpoint. The mock is shaped EXACTLY like a real /api/dashboard response,
 // so flipping USE_MOCK to false is the only change needed to go live.
 
-//  toggle this to false when the backend is running 
+// ── toggle this to false when the backend is running ──
 export const USE_MOCK = false;
 
-// Next.js dev runs on 3001
+// backend runs on port 3000 (firmware also posts there); Next.js dev runs on 3001
 const API_BASE = "http://localhost:3000";
 const DEVICE_ID = "beepboop_001";
 
-//  Types (match the real response)
+// ── Types (match the real response) ──
 export type DashboardData = {
   success: boolean;
   summary: {
@@ -19,18 +20,19 @@ export type DashboardData = {
     kwh_month: number;
     avg_watts: number;
     cost_today: number;
-    cost_month: number;      
+    cost_month: number;      // already AFTER subsidy (full bill)
+    energy_cost_month?: number; // energy-only cost (no basis/subsidy)
     tier_rate: number;
     tier_lower: number;
     tier_upper: number;
     kwh_to_next: number;
   };
-  grid: string;              
+  grid: string;              // "unknown" | "up" | "low" | "out" (from backend)
   outages: { timestamp: string; duration_min: number }[];
   budget: number | null;
   vsYesterday: { today_kwh: number; yesterday_kwh: number; pct: number };
   anomalies: { timestamp: string; message: string; value: number }[];
-  appliance: string;         
+  appliance: string;         // "verwarmingselement" | "fan" | "charger" | "niets" | "onbekend"
   subsidy: number;
   cycle: { code: string; phase: number; read: number; invoice: number } | null;
   live: { watts: number; voltage: number; current: number } | null;
@@ -62,9 +64,10 @@ const MOCK: DashboardData = {
     avg_watts: 150.8,
     cost_today: 6.74,
     cost_month: 486.2,
+    energy_cost_month: 486.2,
     tier_rate: 2.85,
-    tier_lower: 400,
-    tier_upper: 900,   
+    tier_lower: 400,   // note: with mock 214 kWh you'd be tier 1; these values
+    tier_upper: 900,   // are set to show a mid-tier state for building the UI
     kwh_to_next: 185.4,
   },
   grid: "up",
@@ -131,7 +134,7 @@ const MOCK: DashboardData = {
   ],
 };
 
-// Fetch (real or mock)
+// ── Fetch (real or mock) ──
 export async function getDashboard(): Promise<DashboardData> {
   if (USE_MOCK) {
     // small delay to mimic network, so loading states are visible while building
@@ -147,7 +150,7 @@ export async function getDashboard(): Promise<DashboardData> {
   return data as DashboardData;
 }
 
-//  Formatting helpers (SRD, kWh)
+// ── Formatting helpers (SRD, kWh) ──
 export const srd = (v: number | null | undefined, dp = 2) =>
   v == null || isNaN(v) ? "—" : `SRD ${Number(v).toFixed(dp)}`;
 export const kwh = (v: number | null | undefined, dp = 1) =>
@@ -163,7 +166,7 @@ export const APPLIANCE_NAMES: Record<string, string> = {
   onbekend: "Onbekend apparaat",
 };
 
-//  Settings (Instellingen page)
+// ── Settings (Instellingen page) ──
 export type Settings = {
   phase: number;
   cycle_code: string | null;
@@ -213,7 +216,7 @@ export async function saveSettings(s: Partial<Settings>): Promise<void> {
   if (!d.success) throw new Error(d.error || "opslaan mislukt");
 }
 
-// Outages (Uitval page) , reuses the dashboard's outages, plus a fuller history 
+// ── Outages (Uitval page) — reuses the dashboard's outages, plus a fuller history ──
 export type OutageEvent = { timestamp: string; duration_min: number };
 
 // For the Uitval page we can reuse getDashboard().outages, but a dedicated
@@ -223,13 +226,13 @@ export async function getOutages(): Promise<OutageEvent[]> {
   return d.outages || [];
 }
 
-//  AI tips (from separate tips endpoints)
+// ── AI tips (from the separate tips endpoints) ──
 export type AiTip = {
   tip_dutch: string;
   tip_sranan: string;
   created_at?: string;
 };
- 
+
 const MOCK_TIP: AiTip = {
   tip_dutch:
     "Je zit nog 185 kWh onder de volgende, duurdere tariefschijf. Blijf eronder om te besparen. Je voorspelde rekening (SRD 1240) ligt boven je budget — probeer je dagelijkse verbruik iets te verlagen.",
@@ -237,7 +240,7 @@ const MOCK_TIP: AiTip = {
     "Yu de ete 185 kWh ondro a moro diri taria. Tan ondro en fu spar moni. A rekenin di wi e fruwakti (SRD 1240) de moro hei leki yu bajet — pruberi fu saka yu dagelijks gebroiki pikinso.",
   created_at: new Date().toISOString(),
 };
- 
+
 export async function getLatestTip(): Promise<AiTip | null> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 150));
@@ -246,11 +249,12 @@ export async function getLatestTip(): Promise<AiTip | null> {
   const res = await fetch(`${API_BASE}/api/latest-tip?device_id=${DEVICE_ID}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`backend ${res.status}`);
   const d = await res.json();
+  // backend may return the row directly or wrapped; handle both
   const row = d.tip ?? d;
   if (!row || !row.tip_dutch) return null;
   return { tip_dutch: row.tip_dutch, tip_sranan: row.tip_sranan, created_at: row.created_at };
 }
- 
+
 export async function generateTip(): Promise<AiTip> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 900)); // mimic Gemini latency
@@ -267,4 +271,51 @@ export async function generateTip(): Promise<AiTip> {
   }
   const row = d.tip ?? d;
   return { tip_dutch: row.tip_dutch, tip_sranan: row.tip_sranan, created_at: row.created_at };
+}
+
+// ── Clamps (per-circuit sub-metering) ──
+export type Clamp = {
+  clamp_id: number;
+  name: string;
+  connected: boolean;
+  live: { watts: number; voltage: number; current: number } | null;
+};
+
+export type ClampsResult = {
+  clamps: Clamp[];
+  total: { watts: number } | null;  // computed whole-house total (sum of connected clamps)
+};
+
+const MOCK_CLAMPS: Clamp[] = [
+  { clamp_id: 1, name: "Keuken",     connected: true,  live: { watts: 1204, voltage: 122.5, current: 9.82 } },
+  { clamp_id: 2, name: "Slaapkamer", connected: false, live: null },
+];
+
+export async function getClamps(): Promise<ClampsResult> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    const clamps = MOCK_CLAMPS.map((c) => ({ ...c }));
+    const totalWatts = clamps.filter((c) => c.live).reduce((s, c) => s + (c.live!.watts), 0);
+    const anyConnected = clamps.some((c) => c.live);
+    return { clamps, total: anyConnected ? { watts: totalWatts } : null };
+  }
+  const res = await fetch(`${API_BASE}/api/clamps?device_id=${DEVICE_ID}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
+  const d = await res.json();
+  return { clamps: d.clamps || [], total: d.total ?? null };
+}
+
+export async function renameClamp(clampId: number, name: string): Promise<void> {
+  if (USE_MOCK) {
+    const c = MOCK_CLAMPS.find((x) => x.clamp_id === clampId);
+    if (c) c.name = name;
+    await new Promise((r) => setTimeout(r, 200));
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/clamps/rename`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: DEVICE_ID, clamp_id: clampId, name }),
+  });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
 }

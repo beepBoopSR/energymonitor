@@ -9,12 +9,6 @@ import {
 } from "@/lib/api"
 import { ArrowLeftIcon, PlugIcon, PencilSimpleIcon, CheckIcon } from "@phosphor-icons/react"
 
-// ── PATH B: for the connected clamp we reuse the device summary, which is
-// correct here because with one physical clamp, that clamp IS the whole house.
-// To upgrade to true per-clamp aggregation (PATH A), replace the getDashboard()
-// call below with a getClampSummary(clampId) that hits a per-clamp SQL function.
-// The rest of this component stays the same.
-
 function Stat({ cap, big, sub, accent }: {
   cap: string; big: React.ReactNode; sub?: string; accent?: string
 }) {
@@ -51,7 +45,6 @@ export default function ClampDetailPage() {
         if (!alive) return
         setClamp(c)
         if (c && !editing) setNameInput(c.name)
-        // only pull the rich summary for a connected clamp
         if (c?.connected) {
           const d = await getDashboard()
           if (alive) setSummary(d)

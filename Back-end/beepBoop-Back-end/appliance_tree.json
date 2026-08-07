@@ -1,0 +1,36 @@
+{
+  "features": [
+    "crest",
+    "form",
+    "shape",
+    "rms",
+    "peak"
+  ],
+  "classes": [
+    "charger",
+    "fan",
+    "verwarmingselement"
+  ],
+  "tree": {
+    "feature": "form",
+    "threshold": 1.1655,
+    "left": {
+      "feature": "rms",
+      "threshold": 3.685,
+      "left": {
+        "leaf": "fan",
+        "confidence": 1.0
+      },
+      "right": {
+        "leaf": "verwarmingselement",
+        "confidence": 1.0
+      }
+    },
+    "right": {
+      "leaf": "charger",
+      "confidence": 1.0
+    }
+  },
+  "noise_floor_a": 0.05,
+  "confidence_min": 0.6
+}

@@ -204,7 +204,7 @@ export default function DashboardPage() {
             <div className="mt-1 text-xs text-muted-foreground">{srd(s.cost_today)}</div>
           </Card>
           <Card accent="var(--ok)">
-            <Cap>Deze periode</Cap>
+            <Cap>Deze cyclus</Cap>
             <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">{fmtKwh(s.kwh_month, 1)}</div>
             <div className="mt-1 text-xs text-muted-foreground">{srd((s as any).energy_cost_month ?? s.cost_month)} aan verbruik</div>
           </Card>
@@ -373,7 +373,7 @@ export default function DashboardPage() {
 
           <Card>
             <div className="mb-3 flex items-center justify-between">
-              <Cap>Geschiedenis (deze periode)</Cap><Toggle value={histMode} onChange={setHistMode} />
+              <Cap>Geschiedenis (deze cyclus)</Cap><Toggle value={histMode} onChange={setHistMode} />
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={histData} margin={{ left: -18, right: 8, top: 4 }}>
