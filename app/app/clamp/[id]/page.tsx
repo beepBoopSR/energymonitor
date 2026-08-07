@@ -9,6 +9,7 @@ import {
 } from "@/lib/api"
 import { ArrowLeftIcon, PlugIcon, PencilSimpleIcon, CheckIcon } from "@phosphor-icons/react"
 
+
 function Stat({ cap, big, sub, accent }: {
   cap: string; big: React.ReactNode; sub?: string; accent?: string
 }) {
@@ -36,6 +37,12 @@ export default function ClampDetailPage() {
   const [editing, setEditing] = React.useState(false)
   const [nameInput, setNameInput] = React.useState("")
 
+  // ref mirrors `editing` so the polling interval always reads the CURRENT value,
+  // not the value captured when the effect first ran (which stays false forever
+  // and would overwrite the name mid-type).
+  const editingRef = React.useRef(false)
+  React.useEffect(() => { editingRef.current = editing }, [editing])
+
   React.useEffect(() => {
     let alive = true
     const load = async () => {
@@ -43,8 +50,13 @@ export default function ClampDetailPage() {
         const res = await getClamps()
         const c = res.clamps.find((x) => x.clamp_id === clampId) || null
         if (!alive) return
-        setClamp(c)
-        if (c && !editing) setNameInput(c.name)
+        setClamp((prev) => {
+          // don't overwrite the name while the user is editing it
+          if (editingRef.current && prev) return { ...c!, name: prev.name }
+          return c
+        })
+        if (c && !editingRef.current) setNameInput(c.name)
+        // only pull the rich summary for a connected clamp
         if (c?.connected) {
           const d = await getDashboard()
           if (alive) setSummary(d)
