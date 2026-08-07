@@ -3,13 +3,15 @@
 import * as React from "react"
 import {
   getDashboard, srd, kwh as fmtKwh, num, APPLIANCE_NAMES,
+  getLatestTip, generateTip, type AiTip,
   type DashboardData,
 } from "@/lib/api"
 import {
   ResponsiveContainer, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid,
 } from "recharts"
-import { LightningIcon, WalletIcon, TrendUpIcon, WarningIcon } from "@phosphor-icons/react"
+import { LightningIcon, WalletIcon, TrendUpIcon, WarningIcon, SparkleIcon } from "@phosphor-icons/react"
+import { ClampsSection } from "@/components/clamps-section"
 
 const POLL_MS = 5000
 
@@ -17,14 +19,17 @@ function Section({ title, icon, children, right }: {
   title: string; icon?: React.ReactNode; children: React.ReactNode; right?: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+    <section
+      className="rounded-2xl border border-border/60 bg-[color:var(--muted)]/30 p-5"
+      style={{ boxShadow: "0 1px 2px rgba(28,26,22,0.04), 0 8px 24px -12px rgba(28,26,22,0.12)" }}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
           {icon}{title}
         </div>
         {right}
       </div>
-      {children}
+      <div className="flex flex-col gap-5">{children}</div>
     </section>
   )
 }
@@ -33,8 +38,13 @@ function Card({ children, className = "", accent }: {
   children: React.ReactNode; className?: string; accent?: string
 }) {
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 shadow-sm ${className}`}
-      style={accent ? { borderTop: `3px solid ${accent}` } : undefined}>
+    <div
+      className={`rounded-xl border border-border/70 bg-card p-4 transition-shadow duration-200 hover:shadow-lg ${className}`}
+      style={{
+        boxShadow: "0 1px 2px rgba(28,26,22,0.05), 0 4px 12px -6px rgba(28,26,22,0.10)",
+        ...(accent ? { borderTop: `3px solid ${accent}` } : {}),
+      }}
+    >
       {children}
     </div>
   )
@@ -64,6 +74,28 @@ export default function DashboardPage() {
   const [err, setErr] = React.useState<string | null>(null)
   const [histMode, setHistMode] = React.useState<"kwh" | "srd">("kwh")
   const [hourMode, setHourMode] = React.useState<"kwh" | "srd">("kwh")
+
+  // AI tip state
+  const [tip, setTip] = React.useState<AiTip | null>(null)
+  const [genLoading, setGenLoading] = React.useState(false)
+  const [tipErr, setTipErr] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    getLatestTip().then(setTip).catch(() => {})
+  }, [])
+
+  const onGenerate = async () => {
+    setGenLoading(true)
+    setTipErr(null)
+    try {
+      const t = await generateTip()
+      setTip(t)
+    } catch (e: any) {
+      setTipErr(e.message || "kon geen tip genereren")
+    } finally {
+      setGenLoading(false)
+    }
+  }
 
   React.useEffect(() => {
     let alive = true
@@ -98,6 +130,9 @@ export default function DashboardPage() {
   const predBill = p.available ? p.billSrd : s.cost_month
   const overBudget = data.budget != null && predBill > data.budget
 
+  // live cost rate: (kW at current draw) × current tier rate = SRD per hour
+  const costPerHour = online && data.live ? (data.live.watts / 1000) * s.tier_rate : 0
+
   const histData = data.dailyBreakdown.map((d) => ({
     label: d.day.slice(5), value: histMode === "kwh" ? d.kwh : d.cost,
   }))
@@ -109,29 +144,53 @@ export default function DashboardPage() {
   const unit = (m: "kwh" | "srd") => (m === "kwh" ? "kWh" : "SRD")
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-6">
-      {/* HERO */}
-      <div className="relative overflow-hidden rounded-2xl border-2 p-6 shadow-sm"
-        style={{ background: "var(--secondary)", borderColor: "var(--chart-5)" }}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Live vermogen</div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-6xl font-bold tabular-nums text-foreground">{online ? num(data.live!.watts, 0) : "—"}</span>
-              <span className="text-2xl text-muted-foreground">W</span>
+    <div className="flex flex-col gap-8 p-4 md:p-8">
+      {/* HERO — split: live power | live cost rate */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        {/* left: live power */}
+        <div className="relative overflow-hidden rounded-2xl border-2 p-6"
+          style={{ background: "var(--secondary)", borderColor: "var(--chart-5)",
+                   boxShadow: "0 2px 4px rgba(28,26,22,0.06), 0 12px 32px -14px rgba(46,74,46,0.35)" }}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">Live vermogen</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="font-mono text-6xl font-bold tabular-nums tracking-tighter text-foreground">{online ? num(data.live!.watts, 0) : "—"}</span>
+                <span className="text-2xl text-muted-foreground">W</span>
+              </div>
+              <div className="mt-2 font-mono text-sm text-muted-foreground tabular-nums">
+                {online ? num(data.live!.voltage, 1) : "—"} V · {online ? num(data.live!.current, 3) : "—"} A
+              </div>
             </div>
-            <div className="mt-2 text-sm text-muted-foreground tabular-nums">
-              {online ? num(data.live!.voltage, 1) : "—"} V · {online ? num(data.live!.current, 3) : "—"} A
+            <div className="flex flex-col items-end gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-medium" style={{ color: gridColor }}>
+                <span className="size-2 rounded-full" style={{ background: gridColor }} />{gridLabel}
+              </span>
+              <span className="text-xs text-muted-foreground">{online ? "apparaat online" : "apparaat offline"}</span>
+              <span className="mt-1 rounded-lg bg-card px-2.5 py-1 text-xs text-foreground">
+                {APPLIANCE_NAMES[data.appliance] ?? data.appliance}
+              </span>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-medium" style={{ color: gridColor }}>
-              <span className="size-2 rounded-full" style={{ background: gridColor }} />{gridLabel}
+        </div>
+
+        {/* right: live cost rate */}
+        <div className="relative overflow-hidden rounded-2xl border-2 p-6"
+          style={{ background: "var(--card)", borderColor: "var(--primary)",
+                   boxShadow: "0 2px 4px rgba(28,26,22,0.06), 0 12px 32px -14px rgba(229,72,77,0.30)" }}>
+          <div className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">Kosten nu</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="font-mono text-6xl font-bold tabular-nums tracking-tighter text-[color:var(--primary)]">
+              {online ? costPerHour.toFixed(2) : "—"}
             </span>
-            <span className="text-xs text-muted-foreground">{online ? "apparaat online" : "apparaat offline"}</span>
-            <span className="mt-1 rounded-lg bg-card px-2.5 py-1 text-xs text-foreground">
-              {APPLIANCE_NAMES[data.appliance] ?? data.appliance}
-            </span>
+            <span className="text-2xl text-muted-foreground">SRD/uur</span>
+          </div>
+          <div className="mt-2 text-sm text-muted-foreground">
+            bij dit verbruik ·{" "}
+            <span className="font-medium text-foreground">{srd(s.tier_rate)}/kWh</span> (huidige schijf)
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">
+            Plug een apparaat in en zie direct wat het per uur kost.
           </div>
         </div>
       </div>
@@ -141,22 +200,22 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card accent="var(--ok)">
             <Cap>Vandaag</Cap>
-            <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtKwh(s.kwh_today, 2)}</div>
+            <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">{fmtKwh(s.kwh_today, 2)}</div>
             <div className="mt-1 text-xs text-muted-foreground">{srd(s.cost_today)}</div>
           </Card>
           <Card accent="var(--ok)">
             <Cap>Deze periode</Cap>
-            <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtKwh(s.kwh_month, 1)}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{srd(s.cost_month)} tot nu toe</div>
+            <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">{fmtKwh(s.kwh_month, 1)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{srd((s as any).energy_cost_month ?? s.cost_month)} aan verbruik</div>
           </Card>
           <Card accent="var(--warn)">
             <Cap>Huidig tarief</Cap>
-            <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">{srd(s.tier_rate)}</div>
+            <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">{srd(s.tier_rate)}</div>
             <div className="mt-1 text-xs text-muted-foreground">per kWh</div>
           </Card>
           <Card accent={data.vsYesterday.pct > 0 ? "var(--destructive)" : "var(--ok)"}>
             <Cap>vs. gisteren</Cap>
-            <div className="mt-1 text-2xl font-bold tabular-nums"
+            <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight"
               style={{ color: data.vsYesterday.pct > 0 ? "var(--destructive)" : "var(--ok)" }}>
               {data.vsYesterday.pct > 0 ? "+" : ""}{num(data.vsYesterday.pct, 0)}%
             </div>
@@ -185,6 +244,11 @@ export default function DashboardPage() {
         </Card>
       </Section>
 
+      {/* CIRCUITS / CLAMPS */}
+      <Section title="Circuits" icon={<LightningIcon weight="fill" className="text-[color:var(--ok)]" />}>
+        <ClampsSection liveWatts={online ? data.live!.watts : null} />
+      </Section>
+
       {/* KOSTEN */}
       <Section title="Kosten & rekening" icon={<WalletIcon weight="fill" className="text-[color:var(--primary)]" />}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -192,7 +256,10 @@ export default function DashboardPage() {
             <Cap>Voorspelde rekening</Cap>
             {p.available ? (
               <>
-                <div className="mt-1 text-3xl font-bold text-[color:var(--primary)]">{srd(p.billSrd)}</div>
+                <div className="mt-1 font-mono text-3xl font-bold tracking-tighter"
+                  style={{ color: overBudget ? "var(--destructive)" : "var(--foreground)" }}>
+                  {srd(p.billSrd)}
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground">{srd(p.billLaag)} – {srd(p.billHoog)} · {p.basis}</div>
                 <div className="mt-2 text-sm text-foreground">
                   {fmtKwh(p.forecastKwh, 0)} <span className="text-muted-foreground">({num(p.laagKwh, 0)}–{num(p.hoogKwh, 0)})</span>
@@ -234,6 +301,55 @@ export default function DashboardPage() {
             <div className="mt-2 text-[10px] text-muted-foreground">subsidiebedrag is een schatting</div>
           </Card>
         </div>
+      </Section>
+
+      {/* AI ADVIES */}
+      <Section
+        title="AI-advies"
+        icon={<SparkleIcon weight="fill" className="text-[color:var(--primary)]" />}
+        right={
+          <button
+            onClick={onGenerate}
+            disabled={genLoading}
+            className="rounded-lg bg-[color:var(--primary)] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {genLoading ? "Genereren…" : "Nieuwe tip"}
+          </button>
+        }
+      >
+        <Card accent="var(--primary)">
+          {tip ? (
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nederlands
+                </div>
+                <p className="mt-1 text-sm leading-relaxed text-foreground">
+                  {tip.tip_dutch}
+                </p>
+              </div>
+              {tip.tip_sranan && (
+                <div className="border-t border-border pt-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Sranan Tongo
+                  </div>
+                  <p className="mt-1 text-sm leading-relaxed text-secondary-foreground">
+                    {tip.tip_sranan}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : tipErr ? (
+            <div className="text-sm text-muted-foreground">{tipErr}</div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Nog geen advies. Druk op “Nieuwe tip” voor persoonlijk advies.
+            </div>
+          )}
+        </Card>
+        {tipErr && tip && (
+          <div className="mt-1 text-xs text-[color:var(--warn)]">{tipErr}</div>
+        )}
       </Section>
 
       {/* GRAFIEKEN */}
