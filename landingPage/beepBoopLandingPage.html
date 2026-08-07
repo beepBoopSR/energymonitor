@@ -143,13 +143,14 @@ h1 .srd{
   padding:12px 0;border-bottom:1px dashed var(--line);
 }
 .circuit:last-of-type{border-bottom:none}
-.circuit .name{font-size:0.86rem;color:var(--muted)}
+.circuit .name{font-size:0.86rem;color:var(--muted);width:110px;flex-shrink:0}
 .circuit .watts{
   font-family:'Space Mono',monospace;font-weight:700;font-size:1.05rem;
+  width:80px;flex-shrink:0;text-align:right;
 }
 .bar{
   height:5px;border-radius:3px;background:var(--line);
-  width:110px;margin:0 16px;flex-shrink:0;overflow:hidden;
+  flex:1;margin:0 16px;overflow:hidden;
 }
 .bar i{
   display:block;height:100%;background:var(--green);border-radius:3px;
@@ -343,22 +344,22 @@ footer .logo{font-size:1rem}
     </div>
     <div class="demo-body">
       <div class="circuit">
-        <span class="name">Groep 1</span>
+        <span class="name">🍳 Keuken</span>
         <div class="bar"><i id="b1" style="width:78%"></i></div>
         <span class="watts" id="w1">1,204 W</span>
       </div>
       <div class="circuit">
-        <span class="name">Groep 2</span>
+        <span class="name">🛋️ Woonkamer</span>
         <div class="bar"><i id="b2" style="width:32%"></i></div>
         <span class="watts" id="w2">398 W</span>
       </div>
       <div class="circuit">
-        <span class="name">Groep 3</span>
+        <span class="name">❄️ Airco</span>
         <div class="bar"><i id="b3" style="width:14%"></i></div>
         <span class="watts" id="w3">145 W</span>
       </div>
       <div class="circuit">
-        <span class="name">Groep 4</span>
+        <span class="name">🛏️ Slaapkamer</span>
         <div class="bar"><i id="b4" style="width:0%"></i></div>
         <span class="watts" id="w4">0 W</span>
       </div>
@@ -382,8 +383,8 @@ footer .logo{font-size:1rem}
 
 <!-- STATS -->
 <div class="stats reveal">
-  <div class="stat"><div class="num">&lt;$60</div><div class="lbl">total hardware cost</div></div>
-  <div class="stat"><div class="num">1 mo</div><div class="lbl">pays for itself</div></div>
+  <div class="stat"><div class="num">&lt;30</div><div class="lbl">total hardware cost</div></div>
+  <div class="stat"><div class="num">3 mo</div><div class="lbl">pays for itself</div></div>
   <div class="stat"><div class="num">24/7</div><div class="lbl">real-time monitoring</div></div>
   <div class="stat"><div class="num">100%</div><div class="lbl">built for Suriname</div></div>
 </div>
@@ -497,7 +498,7 @@ footer .logo{font-size:1rem}
 <div class="sr-banner reveal">
   <div class="kicker">// energyLink · beepBoop · Hackomation 2026</div>
   <h2>Built in Suriname.<br>For Suriname. 🇸🇷</h2>
-  <p>Every global energy monitor was designed for someone else's grid, someone else's currency, someone else's climate. We built ours for home.</p>
+  <p>Every global energy monitor was designed for someone else's grid, someone else's currency, someone else's climate. We built ours for home. Made by 5 1st year students of the Antone de Kom university of Suriname (ADEK) </p>
 </div>
 
 <!-- FOOTER -->
