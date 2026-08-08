@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { getOutages, type OutageEvent } from "@/lib/api"
-import { LightningIcon, ClockIcon, MapPinIcon } from "@phosphor-icons/react"
+import { LightningIcon, ClockIcon } from "@phosphor-icons/react"
+import { PlannedOutagesSection } from "@/components/planned-outages-section"
 
 function fmtDuration(min: number) {
   if (min < 1) return "< 1 min"
@@ -95,17 +96,8 @@ export default function UitvalPage() {
         )}
       </div>
 
-      {/* EBS planned-outage prep — coming soon */}
-      <div className="rounded-xl border border-dashed border-border bg-[color:var(--secondary)] p-5">
-        <div className="flex items-center gap-2 text-sm font-semibold text-secondary-foreground">
-          <MapPinIcon weight="fill" className="text-[color:var(--ok)]" />
-          Geplande uitval in uw buurt
-        </div>
-        <p className="mt-2 text-sm text-secondary-foreground/80">
-          Binnenkort: energyLink haalt de aangekondigde EBS-onderhoudsonderbrekingen op en
-          waarschuwt u vooraf op basis van uw locatie, zodat u zich kunt voorbereiden.
-        </p>
-      </div>
+      {/* EBS planned outages — real data from the scraper */}
+      <PlannedOutagesSection />
     </div>
   )
 }

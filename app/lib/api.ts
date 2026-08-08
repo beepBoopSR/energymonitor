@@ -334,3 +334,76 @@ export async function addClamp(name: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`backend ${res.status}`);
 }
+
+export async function deleteClamp(clampId: number): Promise<void> {
+  if (USE_MOCK) {
+    const i = MOCK_CLAMPS.findIndex((c) => c.clamp_id === clampId);
+    if (i >= 0 && !MOCK_CLAMPS[i].connected) MOCK_CLAMPS.splice(i, 1);
+    await new Promise((r) => setTimeout(r, 200));
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/clamps/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: DEVICE_ID, clamp_id: clampId }),
+  });
+  const d = await res.json();
+  if (!res.ok || d.success === false) throw new Error(d.error || `backend ${res.status}`);
+}
+
+// ── Planned outages (EBS scraper feature) ──
+export type PlannedOutage = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  timeKnown: boolean;
+  reason: string | null;
+  districts: string[];
+  ressorts: string[];
+  feeders: string[];
+  affectedAreaText: string | null;
+  lengthKm: number | null;
+  geometryStatus: string | null;
+  gisLink: string | null;
+  geometry: { type: string; coordinates: number[][][] } | null;
+  match: { confidence: "high" | "medium" | "low"; reasons: string[]; distanceM: number | null } | null;
+};
+
+const MOCK_PLANNED: PlannedOutage[] = [
+  {
+    id: "mock1", title: "MAP20260811-03", date: "2026-08-11",
+    startTime: null, endTime: null, timeKnown: false, reason: null,
+    districts: ["Paramaribo"], ressorts: ["Rainville"], feeders: ["Wolframstraatlijn"],
+    affectedAreaText: null, lengthKm: 3.2, geometryStatus: "resolved", gisLink: null,
+    geometry: null,
+    match: { confidence: "medium", reasons: ["zelfde ressort"], distanceM: null },
+  },
+  {
+    id: "mock2", title: "MAP20260813-01", date: "2026-08-13",
+    startTime: null, endTime: null, timeKnown: false, reason: null,
+    districts: ["Paramaribo"], ressorts: ["Livorno"], feeders: [],
+    affectedAreaText: null, lengthKm: 5.1, geometryStatus: "resolved", gisLink: null,
+    geometry: null,
+    match: { confidence: "low", reasons: ["zelfde district"], distanceM: null },
+  },
+];
+
+export async function getPlannedOutages(relevantOnly: boolean): Promise<PlannedOutage[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    return MOCK_PLANNED.map((o) => ({ ...o }));
+  }
+  const url = relevantOnly
+    ? `${API_BASE}/api/outages/relevant?device_id=${DEVICE_ID}`
+    : `${API_BASE}/api/outages`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    // 404 = no location set yet; treat as empty rather than error
+    if (res.status === 404) return [];
+    throw new Error(`backend ${res.status}`);
+  }
+  const d = await res.json();
+  return d.outages || [];
+}

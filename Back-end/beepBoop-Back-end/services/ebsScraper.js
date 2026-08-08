@@ -1,23 +1,3 @@
-// energyLink · services/ebsScraper.js
-// GIS-primary scraper for EBS planned outages ("HS UITSCHAKELING") from the public
-// ArcGIS Enterprise portal at gisenterprise.ebs.sr.
-//
-// This is a faithful Node port of the team's working Python scraper, with four
-// reliability fixes baked in (see README-ebs.md):
-//   1. Limited concurrency (default 4) instead of 20 — the 20-worker parallel run
-//      silently dropped ~96% of geometry to throttling.
-//   2. Retry-with-backoff on every request.
-//   3. "webmap resolved but no features" is reported as geometry_status='pending'
-//      (retry next run), NOT as a real empty outage.
-//   4. Filters to UPCOMING planned-outage maps only (tag HS UITSCHAKELING / MAP<date>).
-//
-// It also captures GeoJSON geometry (the Python version discarded coordinates), which
-// enables precise geometric location matching in ebsMatch.js.
-//
-// Zero runtime dependencies (Node 18+ global fetch). Optional insecure TLS via undici
-// only if EBS_INSECURE_TLS=1 (the portal has historically presented a cert that fails
-// verification — see README for the honest way to resolve this).
-
 // energyLink · services/ebsScraper.js  (CommonJS)
 // GIS-primary scraper for EBS planned outages ("HS UITSCHAKELING") from the public
 // ArcGIS Enterprise portal at gisenterprise.ebs.sr.
@@ -164,18 +144,50 @@ const pick = (props, keys) => {
   return null;
 };
 
-// Query one layer as GeoJSON so we get coordinates for geometric matching.
+// Query a layer as GeoJSON. If the URL is a MapServer/FeatureServer ROOT, it isn't
+// directly queryable — we must expand it into its sublayers (/0, /1, ...) and query
+// each. If it's already a specific sublayer (ends in /<number>), query it directly.
 async function queryLayerGeojson(layerUrl) {
   const clean = layerUrl.replace(/\/+$/, '');
-  const q = `${clean}/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson`;
+  const DBG = process.env.EBS_DEBUG === '1';
+
+  // Is this already a specific sublayer (…/MapServer/0)? then query directly.
+  if (/\/\d+$/.test(clean)) {
+    return await queryOneLayer(clean);
+  }
+
+  // Otherwise it's a MapServer/FeatureServer root — list its sublayers first.
+  const meta = await fetchJson(`${clean}?f=json`);
+  const subLayers = (meta && Array.isArray(meta.layers)) ? meta.layers : [];
+  if (DBG) console.log(`[DBG]     MapServer root has ${subLayers.length} sublayer(s): ${subLayers.map(l => l.id).join(',')}`);
+
+  if (subLayers.length === 0) {
+    // no sublayer list — last resort, try /0
+    return await queryOneLayer(`${clean}/0`);
+  }
+
+  let all = [];
+  for (const sl of subLayers) {
+    const feats = await queryOneLayer(`${clean}/${sl.id}`);
+    if (DBG) console.log(`[DBG]       sublayer ${sl.id} ("${sl.name || ''}") -> ${feats.length} features`);
+    all = all.concat(feats);
+  }
+  return all;
+}
+
+// Query a single, specific layer endpoint as GeoJSON.
+async function queryOneLayer(layerUrl) {
+  const q = `${layerUrl}/query?where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&f=geojson`;
   const gj = await fetchJson(q);
   if (gj && Array.isArray(gj.features)) return gj.features;
-  // Fallback: esri json (some MapServer roots need sublayer expansion — kept minimal here)
   return [];
 }
 
 async function scanMap(item) {
+  const DBG = process.env.EBS_DEBUG === '1';
   const webmapId = await resolveWebmapId(item);
+  if (DBG) console.log(`\n[DBG] --- ${item.title} ---`);
+  if (DBG) console.log(`[DBG] item type=${item.type} itemId=${item.itemId} -> webmapId=${webmapId}`);
   const result = {
     ebsItemId: item.itemId,
     mapTitle: item.title,
@@ -194,15 +206,22 @@ async function scanMap(item) {
   };
 
   const webmap = await fetchJson(`${PORTAL}/sharing/rest/content/items/${webmapId}/data?f=json`);
-  if (!webmap) { result.geometryStatus = 'pending'; return finalize(result); }
+  if (!webmap) {
+    if (DBG) console.log(`[DBG] webmap data fetch returned NULL (item ${webmapId})`);
+    result.geometryStatus = 'pending'; return finalize(result);
+  }
 
   const opLayers = webmap.operationalLayers || [];
+  if (DBG) console.log(`[DBG] operationalLayers found: ${opLayers.length}`);
+  if (DBG) opLayers.forEach((l, i) => console.log(`[DBG]   layer[${i}] title="${l.title || ''}" url=${l.url || '(none)'} type=${l.layerType || l.itemId || '?'}`));
   if (opLayers.length === 0) { result.geometryStatus = 'pending'; return finalize(result); }
 
   let anyFeatures = false;
   for (const layer of opLayers) {
-    if (!layer.url) continue;
+    if (!layer.url) { if (DBG) console.log(`[DBG]   (layer "${layer.title}" has no url, skipped)`); continue; }
     const feats = await queryLayerGeojson(layer.url);
+    if (DBG) console.log(`[DBG]   query "${layer.title}" -> ${feats.length} features`);
+    if (DBG && feats.length) console.log(`[DBG]     sample props: ${JSON.stringify(Object.keys(feats[0].properties || {}))}`);
     result.layers.push({ title: layer.title || '', count: feats.length });
     if (feats.length) anyFeatures = true;
     result.totalSegments += feats.length;
@@ -224,6 +243,7 @@ async function scanMap(item) {
 
   // Fix #3: resolved-but-empty ≠ no outage. Mark pending so next run retries.
   result.geometryStatus = anyFeatures ? 'resolved' : 'pending';
+  if (DBG) console.log(`[DBG] result: status=${result.geometryStatus} districts=${[...result.districts]} ressorts=${[...result.ressorts]}`);
   return finalize(result);
 }
 

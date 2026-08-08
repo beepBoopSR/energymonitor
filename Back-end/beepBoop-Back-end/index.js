@@ -11,6 +11,8 @@ app.use('/api', require('./routes/readings'));
 app.use('/api', require('./routes/tips'));
 app.use('/api', settingsRoutes);
 app.use('/api', require('./routes/clamps'))
+app.use('/api/outages', require('./routes/outages'));
+app.use('/api/location', require('./routes/location'));
 
 app.get('/', (req, res) => res.send('beepBoop backend running.'));
 
