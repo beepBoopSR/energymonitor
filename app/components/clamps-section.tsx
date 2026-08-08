@@ -2,23 +2,42 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { getClamps, num, type Clamp } from "@/lib/api"
-import { PlugIcon, HouseIcon, CaretRightIcon } from "@phosphor-icons/react"
+import { getClamps, addClamp, num, type Clamp } from "@/lib/api"
+import { PlugIcon, HouseIcon, CaretRightIcon, PlusIcon, CheckIcon, XIcon } from "@phosphor-icons/react"
 
-// liveWatts comes from the dashboard's single /api/dashboard fetch, so the
-// "Hele huis" total and the connected clamp stay perfectly in sync with the
-// hero's live reading. We still fetch /api/clamps for names + which clamps
-// exist, but take the live value from the shared source (no second reading).
 export function ClampsSection({ liveWatts }: { liveWatts: number | null }) {
   const [clamps, setClamps] = React.useState<Clamp[] | null>(null)
+  const [adding, setAdding] = React.useState(false)
+  const [newName, setNewName] = React.useState("")
+  const [saving, setSaving] = React.useState(false)
+  const addingRef = React.useRef(false)
+  React.useEffect(() => { addingRef.current = adding }, [adding])
+
+  const reload = React.useCallback(
+    () => getClamps().then((d) => setClamps(d.clamps)).catch(() => {}),
+    []
+  )
 
   React.useEffect(() => {
     let alive = true
-    const load = () => getClamps().then((d) => alive && setClamps(d.clamps)).catch(() => {})
+    const load = () => getClamps().then((d) => alive && !addingRef.current && setClamps(d.clamps)).catch(() => {})
     load()
     const id = setInterval(load, 5000)
     return () => { alive = false; clearInterval(id) }
   }, [])
+
+  const onAdd = async () => {
+    if (!newName.trim()) return
+    setSaving(true)
+    try {
+      await addClamp(newName.trim())
+      setNewName("")
+      setAdding(false)
+      await reload()
+    } catch { /* ignore */ } finally {
+      setSaving(false)
+    }
+  }
 
   if (!clamps) return null
 
@@ -49,8 +68,6 @@ export function ClampsSection({ liveWatts }: { liveWatts: number | null }) {
       {/* individual clamps */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {clamps.map((c) => {
-          // connected clamp shows the shared live value (one clamp = whole house);
-          // unconnected clamps show em-dashes.
           const watts = c.connected && liveWatts != null ? liveWatts : null
           return (
             <Link
@@ -79,6 +96,35 @@ export function ClampsSection({ liveWatts }: { liveWatts: number | null }) {
             </Link>
           )
         })}
+
+        {/* add-a-clamp tile */}
+        {adding ? (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-[color:var(--primary)] bg-card p-4">
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") onAdd(); if (e.key === "Escape") { setAdding(false); setNewName("") } }}
+              placeholder="Naam, bijv. Airco"
+              className="h-9 flex-1 rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-[color:var(--primary)]"
+            />
+            <button onClick={onAdd} disabled={saving}
+              className="flex size-9 items-center justify-center rounded-lg bg-[color:var(--primary)] text-white disabled:opacity-50">
+              <CheckIcon />
+            </button>
+            <button onClick={() => { setAdding(false); setNewName("") }}
+              className="flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground">
+              <XIcon />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-[color:var(--primary)] hover:text-foreground"
+          >
+            <PlusIcon /> Klem toevoegen
+          </button>
+        )}
       </div>
     </div>
   )

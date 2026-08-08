@@ -6,7 +6,7 @@
 // so flipping USE_MOCK to false is the only change needed to go live.
 
 // ── toggle this to false when the backend is running ──
-export const USE_MOCK = false;
+export const USE_MOCK = true;
 
 // backend runs on port 3000 (firmware also posts there); Next.js dev runs on 3001
 const API_BASE = "http://localhost:3000";
@@ -316,6 +316,21 @@ export async function renameClamp(clampId: number, name: string): Promise<void> 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ device_id: DEVICE_ID, clamp_id: clampId, name }),
+  });
+  if (!res.ok) throw new Error(`backend ${res.status}`);
+}
+
+export async function addClamp(name: string): Promise<void> {
+  if (USE_MOCK) {
+    const nextId = Math.max(0, ...MOCK_CLAMPS.map((c) => c.clamp_id)) + 1;
+    MOCK_CLAMPS.push({ clamp_id: nextId, name, connected: false, live: null });
+    await new Promise((r) => setTimeout(r, 200));
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/clamps/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id: DEVICE_ID, name }),
   });
   if (!res.ok) throw new Error(`backend ${res.status}`);
 }

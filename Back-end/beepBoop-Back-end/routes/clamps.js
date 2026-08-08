@@ -59,4 +59,36 @@ router.post('/clamps/rename', async (req, res) => {
   }
 });
 
+// ── ADD to routes/clamps.js: POST /api/clamps/add ──
+// Manually add a new clamp (a slot). No live data — it's "niet verbonden" until a
+// physical clamp is actually wired to that clamp_id in the firmware.
+router.post('/clamps/add', async (req, res) => {
+  const { device_id = 'beepboop_001', name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'name required' });
+  }
+  try {
+    // next clamp_id = max existing + 1 for this device
+    const { data: existing } = await supabase
+      .from('clamps')
+      .select('clamp_id')
+      .eq('device_id', device_id)
+      .order('clamp_id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextId = existing ? existing.clamp_id + 1 : 1;
+
+    const { error } = await supabase.from('clamps').insert({
+      device_id,
+      clamp_id: nextId,
+      name: name.trim(),
+      connected: false,   // manual clamp starts unconnected — no live data
+    });
+    if (error) return res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true, clamp_id: nextId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

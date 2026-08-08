@@ -9,21 +9,26 @@ import {
 } from "@/lib/api"
 import { ArrowLeftIcon, PlugIcon, PencilSimpleIcon, CheckIcon } from "@phosphor-icons/react"
 
+// ── PATH B: for the connected clamp we reuse the device summary, which is
+// correct here because with one physical clamp, that clamp IS the whole house.
+// To upgrade to true per-clamp aggregation (PATH A), replace the getDashboard()
+// call below with a getClampSummary(clampId) that hits a per-clamp SQL function.
+// The rest of this component stays the same.
 
 function Stat({ cap, big, sub, accent }: {
   cap: string; big: React.ReactNode; sub?: string; accent?: string
 }) {
   return (
     <div
-      className="rounded-xl border border-border/70 bg-card p-4"
+      className="rounded-xl border border-border/70 bg-card p-6"
       style={{
         boxShadow: "0 1px 2px rgba(28,26,22,0.05), 0 4px 12px -6px rgba(28,26,22,0.10)",
         ...(accent ? { borderTop: `3px solid ${accent}` } : {}),
       }}
     >
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{cap}</div>
-      <div className="mt-1 font-mono text-2xl font-bold tabular-nums tracking-tight text-foreground">{big}</div>
-      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+      <div className="mt-2 font-mono text-4xl font-bold tabular-nums tracking-tight text-foreground">{big}</div>
+      {sub && <div className="mt-1.5 text-sm text-muted-foreground">{sub}</div>}
     </div>
   )
 }
@@ -93,7 +98,7 @@ export default function ClampDetailPage() {
   const costPerHour = online && clamp.live ? (clamp.live.watts / 1000) * tierRate : 0
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5 p-4 md:p-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 p-4 md:p-8">
       <Link href="/dashboard" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeftIcon /> Dashboard
       </Link>
@@ -128,7 +133,7 @@ export default function ClampDetailPage() {
       {online ? (
         <>
           {/* live row */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <Stat cap="Vermogen" accent="var(--ok)" big={<>{num(clamp.live!.watts, 0)}<span className="text-base font-normal text-muted-foreground"> W</span></>} />
             <Stat cap="Kosten nu" accent="var(--primary)"
               big={<span className="text-[color:var(--primary)]">{costPerHour.toFixed(2)}</span>}
@@ -138,7 +143,7 @@ export default function ClampDetailPage() {
           </div>
 
           {/* today + cycle */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Stat cap="Vandaag"
               big={s ? fmtKwh(s.kwh_today, 2) : "—"}
               sub={s ? `${srd(s.cost_today)} aan verbruik` : undefined} />
